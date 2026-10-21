@@ -1,0 +1,13 @@
+# Weekly dependency updates. The build intentionally uses some prerelease packages (the Foundry hosting adapter and the
+# publish tool's Foundry agents package): Dependabot only proposes a prerelease when the current version is a prerelease.
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly

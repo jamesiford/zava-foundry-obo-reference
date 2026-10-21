@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Compass.Agents.Contracts\Compass.Agents.Contracts.csproj" />
+    <ProjectReference Include="..\..\Shared\Compass.Shared.Identity\Compass.Shared.Identity.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Azure.AI.Extensions.OpenAI" Version="2.0.0" />
+    <PackageReference Include="Azure.AI.Projects" Version="2.0.1" />
+    <PackageReference Include="Azure.AI.Projects.Agents" Version="2.0.0" />
+    <PackageReference Include="Azure.Identity" Version="1.21.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.13" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.13" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!-- The Foundry agent SDK surface is marked experimental (AAIP001 / OPENAI001); one reviewed opt-in per project. -->
+    <NoWarn>$(NoWarn);AAIP001;OPENAI001;SCME0001</NoWarn>
+  </PropertyGroup>
+
+</Project>

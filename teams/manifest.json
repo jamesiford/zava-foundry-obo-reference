@@ -1,0 +1,50 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.30/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.30",
+  "version": "1.0.1",
+  "id": "{{BOT_APP_ID}}",
+  "developer": {
+    "name": "Zava Credit Union",
+    "websiteUrl": "https://www.example.com",
+    "privacyUrl": "https://www.example.com/privacy",
+    "termsOfUseUrl": "https://www.example.com/terms"
+  },
+  "name": {
+    "short": "Compass",
+    "full": "Compass - Zava Credit Union member briefing"
+  },
+  "description": {
+    "short": "Briefs credit union staff on a member and the policies that apply, as you.",
+    "full": "Compass answers from SharePoint policy documents and the member accounts API using your own permissions: you only ever see what you are allowed to see. Reference build for the on-behalf-of identity pattern."
+  },
+  "icons": {
+    "color": "color.png",
+    "outline": "outline.png"
+  },
+  "accentColor": "#0B5CAD",
+  "bots": [
+    {
+      "botId": "{{BOT_APP_ID}}",
+      "scopes": [ "personal", "groupChat", "copilot" ],
+      "supportsFiles": false,
+      "isNotificationOnly": false
+    }
+  ],
+  "copilotAgents": {
+    "customEngineAgents": [
+      {
+        "id": "{{BOT_APP_ID}}",
+        "type": "bot",
+        "disclaimer": { "text": "This agent uses AI. Verify important information." }
+      }
+    ]
+  },
+  "permissions": [ "identity", "messageTeamMembers" ],
+  "validDomains": [ "token.botframework.com" ],
+  "webApplicationInfo": {
+    "id": "{{BOT_APP_ID}}",
+    "resource": "{{BOT_IDENTIFIER_URI}}"
+  }
+}
+
+

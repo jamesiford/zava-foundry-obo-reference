@@ -1,0 +1,3 @@
+# The vendored MSAL bundle is third-party and must stay byte-identical (its SHA256 is recorded in its README),
+# so Git must not normalise its line endings on checkout.
+src/Bot/Compass.Bot.Host/wwwroot/lib/** -text

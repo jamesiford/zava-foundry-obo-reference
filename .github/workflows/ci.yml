@@ -1,0 +1,117 @@
+name: CI
+
+# Build + test run on every push/PR with NO secrets: the identity-isolation suite uses its in-process fakes, and its
+# Live variants are skipped. The deploy and live-isolation jobs are deliberately disabled until the Azure/Entra
+# deployment runbook (docs/DEPLOY.md) has been completed against a real tenant.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore Compass.slnx
+
+      - name: Build
+        run: dotnet build Compass.slnx --no-restore --configuration Release
+
+      - name: Test
+        run: dotnet test Compass.slnx --no-build --configuration Release --logger "trx;LogFileName=test-results.trx" --results-directory ./TestResults
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: TestResults/**/*.trx
+
+  # Real-tenant isolation cases (UserA/UserB, token leakage, expired token, claims challenge). Runs only when the repo
+  # variable COMPASS_TEST_TENANT_CONFIGURED is "true" AND the COMPASS_TEST_* secrets listed below exist.
+  # Required secrets: COMPASS_TEST_TENANT_ID, COMPASS_TEST_CLIENT_ID, COMPASS_TEST_ZAVAAPI_SCOPES,
+  # COMPASS_TEST_FOUNDRY_PROJECT_ENDPOINT, and for each of A/B:
+  # COMPASS_TEST_USER{A|B}_UPN, _PASSWORD, _OID, _NAME, _MEMBER. Optional: COMPASS_TEST_GRAPH_SCOPES, COMPASS_TEST_SEARCH_SCOPES, COMPASS_TEST_SHAREPOINT_AGENT_NAME, COMPASS_TEST_ZAVAAPI_AGENT_NAME.
+  live-isolation:
+    needs: build-test
+    if: ${{ vars.COMPASS_TEST_TENANT_CONFIGURED == 'true' }}
+    runs-on: ubuntu-latest
+    env:
+      COMPASS_TEST_TENANT_CONFIGURED: "true"
+      COMPASS_TEST_TENANT_ID: ${{ secrets.COMPASS_TEST_TENANT_ID }}
+      COMPASS_TEST_CLIENT_ID: ${{ secrets.COMPASS_TEST_CLIENT_ID }}
+      COMPASS_TEST_GRAPH_SCOPES: ${{ secrets.COMPASS_TEST_GRAPH_SCOPES }}
+      COMPASS_TEST_ZAVAAPI_SCOPES: ${{ secrets.COMPASS_TEST_ZAVAAPI_SCOPES }}
+      COMPASS_TEST_SEARCH_SCOPES: ${{ secrets.COMPASS_TEST_SEARCH_SCOPES }}
+      COMPASS_TEST_FOUNDRY_PROJECT_ENDPOINT: ${{ secrets.COMPASS_TEST_FOUNDRY_PROJECT_ENDPOINT }}
+      COMPASS_TEST_USERA_UPN: ${{ secrets.COMPASS_TEST_USERA_UPN }}
+      COMPASS_TEST_USERA_PASSWORD: ${{ secrets.COMPASS_TEST_USERA_PASSWORD }}
+      COMPASS_TEST_USERA_OID: ${{ secrets.COMPASS_TEST_USERA_OID }}
+      COMPASS_TEST_USERA_NAME: ${{ secrets.COMPASS_TEST_USERA_NAME }}
+      COMPASS_TEST_USERA_MEMBER: ${{ secrets.COMPASS_TEST_USERA_MEMBER }}
+      COMPASS_TEST_USERB_UPN: ${{ secrets.COMPASS_TEST_USERB_UPN }}
+      COMPASS_TEST_USERB_PASSWORD: ${{ secrets.COMPASS_TEST_USERB_PASSWORD }}
+      COMPASS_TEST_USERB_OID: ${{ secrets.COMPASS_TEST_USERB_OID }}
+      COMPASS_TEST_USERB_NAME: ${{ secrets.COMPASS_TEST_USERB_NAME }}
+      COMPASS_TEST_USERB_MEMBER: ${{ secrets.COMPASS_TEST_USERB_MEMBER }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Run live identity-isolation suite
+        run: dotnet test tests/Compass.IdentityIsolation.Tests --configuration Release
+
+  # Disabled (`if: false`) on purpose. Before enabling:
+  #   1. Complete the provisioning steps of docs/DEPLOY.md so the `dev` azd environment exists.
+  #   2. Create a Microsoft Entra app registration for GitHub with a FEDERATED credential for this repo
+  #      (subject repo:<owner>/<repo>:environment:dev). No client secret is used.
+  #   3. Add repo variables AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID, AZURE_LOCATION and a GitHub
+  #      environment named `dev`.
+  #   4. Make infra/azure.yaml's preprovision/postprovision hooks non-interactive for CI (they are `interactive: true`
+  #      for first-time admin sign-in), or run `azd provision` manually and let this job only `azd deploy`.
+  deploy-dev:
+    needs: build-test
+    if: false
+    runs-on: ubuntu-latest
+    environment: dev
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      AZURE_ENV_NAME: dev
+      AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - uses: Azure/setup-azd@v2
+      - name: Log in with azd (federated credential)
+        run: |
+          azd auth login \
+            --client-id "$AZURE_CLIENT_ID" \
+            --federated-credential-provider github \
+            --tenant-id "$AZURE_TENANT_ID"
+      - name: Deploy
+        working-directory: infra
+        run: azd deploy --no-prompt

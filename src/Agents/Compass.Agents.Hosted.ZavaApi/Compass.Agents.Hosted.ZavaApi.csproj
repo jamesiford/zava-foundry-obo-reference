@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Compass.Agents.Contracts\Compass.Agents.Contracts.csproj" />
+    <ProjectReference Include="..\..\Shared\Compass.Shared.Identity\Compass.Shared.Identity.csproj" />
+    <ProjectReference Include="..\..\Shared\Compass.Shared.Observability\Compass.Shared.Observability.csproj" />
+    <ProjectReference Include="..\..\..\apphost\Compass.ServiceDefaults\Compass.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\Compass.Agents.Hosting\Compass.Agents.Hosting.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ModelContextProtocol" Version="2.2.0" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+</Project>

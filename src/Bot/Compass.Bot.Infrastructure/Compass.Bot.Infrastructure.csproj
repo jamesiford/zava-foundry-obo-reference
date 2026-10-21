@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Compass.Bot.Application\Compass.Bot.Application.csproj" />
+    <ProjectReference Include="..\..\Shared\Compass.Shared.Identity\Compass.Shared.Identity.csproj" />
+    <ProjectReference Include="..\..\Shared\Compass.Shared.Observability\Compass.Shared.Observability.csproj" />
+    <ProjectReference Include="..\..\Agents\Compass.Agents.Contracts\Compass.Agents.Contracts.csproj" />
+    <ProjectReference Include="..\..\Agents\Compass.Agents.Prompt.SharePointKnowledge\Compass.Agents.Prompt.SharePointKnowledge.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Azure.Identity" Version="1.21.0" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.13" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.13" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.13" />
+    <PackageReference Include="Microsoft.Identity.Client" Version="4.91.0" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!-- The Foundry agent SDK surface is marked experimental (OPENAI001); one reviewed opt-in per project. -->
+    <NoWarn>$(NoWarn);OPENAI001</NoWarn>
+  </PropertyGroup>
+
+</Project>

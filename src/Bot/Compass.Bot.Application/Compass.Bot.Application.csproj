@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Compass.Bot.Domain\Compass.Bot.Domain.csproj" />
+    <ProjectReference Include="..\..\Agents\Compass.Agents.Contracts\Compass.Agents.Contracts.csproj" />
+    <ProjectReference Include="..\..\Shared\Compass.Shared.Identity\Compass.Shared.Identity.csproj" />
+    <ProjectReference Include="..\..\Shared\Compass.Shared.Messaging\Compass.Shared.Messaging.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

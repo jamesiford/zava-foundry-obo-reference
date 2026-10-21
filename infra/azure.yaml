@@ -1,0 +1,63 @@
+# azd project definition. This file lives in infra/, so `project:` paths are relative to infra/.
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+name: compass-obo
+
+metadata:
+  template: compass-obo-reference
+
+infra:
+  provider: bicep
+  path: .
+  module: main
+
+# The azd environment name IS the Compass environment: it must be `dev` or `test` (main.bicep @allowed).
+# Services are matched to Azure resources by the `azd-service-name` tag set in main.bicep (bot / mcp).
+services:
+  bot:
+    project: ../src/Bot/Compass.Bot.Host
+    language: dotnet
+    host: appservice
+  mcp:
+    project: ../src/Mcp/Compass.Mcp.ZavaApi.Host
+    language: dotnet
+    host: function
+
+hooks:
+  # 1) Create/update the two Entra app registrations (no federated credential yet: the managed identity does not exist
+  #    until the first provision). Publishes the app ids so main.parameters.json can resolve them.
+  preprovision:
+    shell: pwsh
+    interactive: true
+    continueOnError: false
+    run: |
+      # Keep the deployed origin registered on later runs; on the very first run it does not exist yet and postprovision adds it.
+      $entra = @{ Environment = $env:AZURE_ENV_NAME }
+      if ($env:SERVICE_BOT_ENDPOINT) { $entra.BotEndpoint = $env:SERVICE_BOT_ENDPOINT }
+      # A developer-machine redirect URI belongs to the dev environment only.
+      if ($env:AZURE_ENV_NAME -eq 'dev') { $entra.LocalPort = 5240 }
+      $apps = ./scripts/Setup-EntraApps.ps1 @entra
+      azd env set BOT_APP_ID $apps.BotAppId
+      azd env set ZAVA_API_APP_ID $apps.ZavaApiAppId
+      azd env set BOT_IDENTIFIER_URI $apps.BotIdentifierUri
+      azd env set ZAVA_API_IDENTIFIER_URI $apps.ZavaApiIdentifierUri
+
+  # 2) Re-run (idempotent) now that the bot's managed identity exists so the federated identity credential
+  #    is created, and the deployed origin can be registered as the web front door's redirect URI. Tenant-wide admin
+  #    consent is opt-in: `azd env set RUN_ADMIN_CONSENT true` as a tenant admin.
+  postprovision:
+    shell: pwsh
+    interactive: true
+    continueOnError: false
+    run: |
+      $entra = @{
+        Environment                = $env:AZURE_ENV_NAME
+        ManagedIdentityPrincipalId = $env:BOT_MANAGED_IDENTITY_PRINCIPAL_ID
+        ManagedIdentityClientId    = $env:BOT_MANAGED_IDENTITY_CLIENT_ID
+        OutputManifestFragmentPath = './.generated/teams-webApplicationInfo.json'
+      }
+      if ($env:SERVICE_BOT_ENDPOINT) { $entra.BotEndpoint = $env:SERVICE_BOT_ENDPOINT }
+      if ($env:AZURE_ENV_NAME -eq 'dev') { $entra.LocalPort = 5240 }
+      ./scripts/Setup-EntraApps.ps1 @entra
+      if ($env:RUN_ADMIN_CONSENT -eq 'true') {
+        ./scripts/Grant-AdminConsent.ps1 -Environment $env:AZURE_ENV_NAME
+      }

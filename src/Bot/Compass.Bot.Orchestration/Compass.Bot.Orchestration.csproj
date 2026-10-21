@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Compass.Bot.Application\Compass.Bot.Application.csproj" />
+    <ProjectReference Include="..\Compass.Bot.Domain\Compass.Bot.Domain.csproj" />
+    <ProjectReference Include="..\..\Agents\Compass.Agents.Contracts\Compass.Agents.Contracts.csproj" />
+    <ProjectReference Include="..\..\Shared\Compass.Shared.Messaging\Compass.Shared.Messaging.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Agents.AI.Workflows" Version="1.25.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.13" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!-- Microsoft Agent Framework workflow APIs are still flagged experimental; one reviewed opt-in per project. -->
+    <NoWarn>$(NoWarn);MAAIW001;MEAI001;OPENAI001;AAIP001;SCME0001</NoWarn>
+  </PropertyGroup>
+
+</Project>

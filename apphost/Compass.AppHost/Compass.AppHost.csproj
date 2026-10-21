@@ -1,0 +1,21 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.6.1">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Bot\Compass.Bot.Host\Compass.Bot.Host.csproj" />
+    <ProjectReference Include="..\..\src\Mcp\Compass.Mcp.ZavaApi.Host\Compass.Mcp.ZavaApi.Host.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.Azure.Functions" Version="13.6.1" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AspireUseCliBundle>true</AspireUseCliBundle>
+    <UserSecretsId>9b7ea38e-6f70-4e91-afb5-af7cff4a1ad4</UserSecretsId>
+  </PropertyGroup>
+
+</Project>

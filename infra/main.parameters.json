@@ -1,0 +1,36 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "environmentName": {
+      "value": "${AZURE_ENV_NAME}"
+    },
+    "location": {
+      "value": "${AZURE_LOCATION}"
+    },
+    "botAppId": {
+      "value": "${BOT_APP_ID}"
+    },
+    "zavaApiAppId": {
+      "value": "${ZAVA_API_APP_ID}"
+    },
+    "createAgentApplications": {
+      "value": "${CREATE_AGENT_APPLICATIONS=false}"
+    },
+    "sandboxPolicyOptOut": {
+      "value": "${SANDBOX_POLICY_OPT_OUT=false}"
+    },
+    "sharePointRoute": {
+      "value": "${SHAREPOINT_ROUTE=KnowledgeBase}"
+    },
+    "frontDoorEnabled": {
+      "value": "${FRONT_DOOR_ENABLED=true}"
+    },
+    "sharePointRetrievalAgentVersion": {
+      "value": "${SHAREPOINT_RETRIEVAL_AGENT_VERSION=}"
+    },
+    "zavaApiAgentVersion": {
+      "value": "${ZAVA_API_AGENT_VERSION=}"
+    }
+  }
+}

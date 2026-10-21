@@ -1,0 +1,91 @@
+<Solution>
+  <Folder Name="/apphost/" />
+  <Folder Name="/apphost/Compass.AppHost/">
+    <Project Path="apphost/Compass.AppHost/Compass.AppHost.csproj" />
+  </Folder>
+  <Folder Name="/apphost/Compass.ServiceDefaults/">
+    <Project Path="apphost/Compass.ServiceDefaults/Compass.ServiceDefaults.csproj" />
+  </Folder>
+  <Folder Name="/src/" />
+  <Folder Name="/src/Agents/" />
+  <Folder Name="/src/Agents/Compass.Agents.Contracts/">
+    <Project Path="src/Agents/Compass.Agents.Contracts/Compass.Agents.Contracts.csproj" />
+  </Folder>
+  <Folder Name="/src/Agents/Compass.Agents.Hosting/">
+    <Project Path="src/Agents/Compass.Agents.Hosting/Compass.Agents.Hosting.csproj" />
+  </Folder>
+  <Folder Name="/src/Agents/Compass.Agents.Hosted.SharePointRetrieval/">
+    <Project Path="src/Agents/Compass.Agents.Hosted.SharePointRetrieval/Compass.Agents.Hosted.SharePointRetrieval.csproj" />
+  </Folder>
+  <Folder Name="/src/Agents/Compass.Agents.Hosted.ZavaApi/">
+    <Project Path="src/Agents/Compass.Agents.Hosted.ZavaApi/Compass.Agents.Hosted.ZavaApi.csproj" />
+  </Folder>
+  <Folder Name="/src/Agents/Compass.Agents.Prompt.LearnDocs/">
+    <Project Path="src/Agents/Compass.Agents.Prompt.LearnDocs/Compass.Agents.Prompt.LearnDocs.csproj" />
+  </Folder>
+  <Folder Name="/src/Agents/Compass.Agents.Prompt.SharePointKnowledge/">
+    <Project Path="src/Agents/Compass.Agents.Prompt.SharePointKnowledge/Compass.Agents.Prompt.SharePointKnowledge.csproj" />
+  </Folder>
+  <Folder Name="/src/Bot/" />
+  <Folder Name="/src/Bot/Compass.Bot.Application/">
+    <Project Path="src/Bot/Compass.Bot.Application/Compass.Bot.Application.csproj" />
+  </Folder>
+  <Folder Name="/src/Bot/Compass.Bot.Domain/">
+    <Project Path="src/Bot/Compass.Bot.Domain/Compass.Bot.Domain.csproj" />
+  </Folder>
+  <Folder Name="/src/Bot/Compass.Bot.Host/">
+    <Project Path="src/Bot/Compass.Bot.Host/Compass.Bot.Host.csproj" />
+  </Folder>
+  <Folder Name="/src/Bot/Compass.Bot.Orchestration/">
+    <Project Path="src/Bot/Compass.Bot.Orchestration/Compass.Bot.Orchestration.csproj" />
+  </Folder>
+  <Folder Name="/src/Bot/Compass.Bot.Infrastructure/">
+    <Project Path="src/Bot/Compass.Bot.Infrastructure/Compass.Bot.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Mcp/" />
+  <Folder Name="/src/Mcp/Compass.Mcp.ZavaApi.Application/">
+    <Project Path="src/Mcp/Compass.Mcp.ZavaApi.Application/Compass.Mcp.ZavaApi.Application.csproj" />
+  </Folder>
+  <Folder Name="/src/Mcp/Compass.Mcp.ZavaApi.Domain/">
+    <Project Path="src/Mcp/Compass.Mcp.ZavaApi.Domain/Compass.Mcp.ZavaApi.Domain.csproj" />
+  </Folder>
+  <Folder Name="/src/Mcp/Compass.Mcp.ZavaApi.Host/">
+    <Project Path="src/Mcp/Compass.Mcp.ZavaApi.Host/Compass.Mcp.ZavaApi.Host.csproj" />
+  </Folder>
+  <Folder Name="/src/Mcp/Compass.Mcp.ZavaApi.Infrastructure/">
+    <Project Path="src/Mcp/Compass.Mcp.ZavaApi.Infrastructure/Compass.Mcp.ZavaApi.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Shared/" />
+  <Folder Name="/src/Shared/Compass.Shared.Identity/">
+    <Project Path="src/Shared/Compass.Shared.Identity/Compass.Shared.Identity.csproj" />
+  </Folder>
+  <Folder Name="/src/Shared/Compass.Shared.Messaging/">
+    <Project Path="src/Shared/Compass.Shared.Messaging/Compass.Shared.Messaging.csproj" />
+  </Folder>
+  <Folder Name="/src/Shared/Compass.Shared.Observability/">
+    <Project Path="src/Shared/Compass.Shared.Observability/Compass.Shared.Observability.csproj" />
+  </Folder>
+  <Folder Name="/tests/" />
+  <Folder Name="/tests/Compass.Agents.Contracts.Tests/">
+    <Project Path="tests/Compass.Agents.Contracts.Tests/Compass.Agents.Contracts.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Compass.Agents.Prompt.Tests/">
+    <Project Path="tests/Compass.Agents.Prompt.Tests/Compass.Agents.Prompt.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Compass.Bot.Application.Tests/">
+    <Project Path="tests/Compass.Bot.Application.Tests/Compass.Bot.Application.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Compass.IdentityIsolation.Tests/">
+    <Project Path="tests/Compass.IdentityIsolation.Tests/Compass.IdentityIsolation.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Compass.Mcp.ZavaApi.Tests/">
+    <Project Path="tests/Compass.Mcp.ZavaApi.Tests/Compass.Mcp.ZavaApi.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Compass.Tools.PublishAgents.Tests/">
+    <Project Path="tests/Compass.Tools.PublishAgents.Tests/Compass.Tools.PublishAgents.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tools/" />
+  <Folder Name="/tools/Compass.Tools.PublishAgents/">
+    <Project Path="tools/Compass.Tools.PublishAgents/Compass.Tools.PublishAgents.csproj" />
+  </Folder>
+</Solution>

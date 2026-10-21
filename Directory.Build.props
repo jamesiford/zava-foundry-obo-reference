@@ -1,0 +1,16 @@
+<Project>
+
+  <!--
+    Solution-wide settings for every project under this repo (dev spec §6, Coding Standards):
+    nullable reference types are enabled everywhere and a nullable warning is a review blocker,
+    not a suppress target.
+  -->
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningsNotAsErrors>NU1902;NU1903</WarningsNotAsErrors>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+</Project>

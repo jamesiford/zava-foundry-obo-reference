@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="10.0.13" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Agents\Compass.Agents.Contracts\Compass.Agents.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Shared\Compass.Shared.Identity\Compass.Shared.Identity.csproj" />
+    <ProjectReference Include="..\..\src\Bot\Compass.Bot.Application\Compass.Bot.Application.csproj" />
+    <ProjectReference Include="..\..\src\Bot\Compass.Bot.Orchestration\Compass.Bot.Orchestration.csproj" />
+    <ProjectReference Include="..\..\src\Bot\Compass.Bot.Infrastructure\Compass.Bot.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Bot\Compass.Bot.Host\Compass.Bot.Host.csproj" />
+    <ProjectReference Include="..\..\src\Agents\Compass.Agents.Hosting\Compass.Agents.Hosting.csproj" />
+    <ProjectReference Include="..\..\src\Agents\Compass.Agents.Hosted.SharePointRetrieval\Compass.Agents.Hosted.SharePointRetrieval.csproj" />
+    <ProjectReference Include="..\..\src\Agents\Compass.Agents.Hosted.ZavaApi\Compass.Agents.Hosted.ZavaApi.csproj" />
+    <ProjectReference Include="..\..\src\Shared\Compass.Shared.Observability\Compass.Shared.Observability.csproj" />
+    <ProjectReference Include="..\..\src\Shared\Compass.Shared.Messaging\Compass.Shared.Messaging.csproj" />
+  </ItemGroup>
+
+</Project>

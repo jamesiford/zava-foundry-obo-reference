@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Deliberately standalone: it does not reference the bot's Foundry projects. Source-code deployment of hosted agents
+    only exists in the prerelease Azure.AI.Projects.Agents 3.x line, which cannot share a dependency graph with the stable
+    Azure.AI.Projects 2.x that the bot uses to invoke agents. Keeping the publisher out of the runtime graph means the
+    bot stays on GA packages while the publish tool tracks the preview API.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Compass.Tools.PublishAgents</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Azure.AI.Projects.Agents" Version="3.0.0-beta.5" />
+    <PackageReference Include="Azure.Identity" Version="1.21.0" />
+  </ItemGroup>
+
+</Project>

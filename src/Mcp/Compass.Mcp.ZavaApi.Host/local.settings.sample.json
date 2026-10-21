@@ -1,0 +1,10 @@
+{
+    "IsEncrypted": false,
+    "Values": {
+        "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+        "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+        "ZavaApi__Auth__Authority": "https://login.microsoftonline.com/00000000-0000-0000-0000-000000000000/v2.0",
+        "ZavaApi__Auth__ValidIssuers__0": "https://login.microsoftonline.com/00000000-0000-0000-0000-000000000000/v2.0",
+        "ZavaApi__Auth__ValidAudiences__0": "api://zava-credit-union-api-<zava-api-app-id>"
+    }
+}

@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "Compass.Mcp.ZavaApi.Host": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 7224",
+      "launchBrowser": false
+    }
+  }
+}

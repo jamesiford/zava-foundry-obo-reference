@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Zava Compass</title>
+  <link rel="stylesheet" href="/app.css">
+</head>
+<body>
+  <header>
+    <h1>Zava Compass</h1>
+    <div id="account" hidden>
+      <span id="who" class="muted"></span>
+      <button id="signOut" type="button">Sign out</button>
+    </div>
+  </header>
+
+  <main>
+    <p id="fatal" class="error" role="alert" hidden></p>
+
+    <section id="signedOut">
+      <p>Sign in with your Zava work account to get a briefing built from what <em>you</em> are allowed to see.</p>
+      <button id="signIn" class="primary" type="button">Sign in</button>
+    </section>
+
+    <section id="signedIn" hidden>
+      <form id="form">
+        <label for="question"><strong>Ask a question</strong></label>
+        <textarea id="question" rows="3" maxlength="500" required></textarea>
+        <div class="chips" aria-label="Example questions">
+          <button type="button" data-question="What are my accounts and balances?">My accounts and balances</button>
+          <button type="button" data-question="What is the maximum debt-to-income ratio for an unsecured personal loan?">Max debt-to-income ratio</button>
+          <button type="button" data-question="How much unsecured credit can a Credit Officer approve on their own?">Credit Officer limit</button>
+          <button type="button" data-question="When must we make a hardship call on a delinquent account?">Hardship call timing</button>
+          <button type="button" data-question="Which branches are on the delinquency watchlist this quarter?">Delinquency watchlist</button>
+          <button type="button" data-question="What is the cutoff time for outgoing domestic wires?">Wire cutoff time</button>
+        </div>
+        <div class="actions">
+          <button id="ask" class="primary" type="submit">Get briefing</button>
+          <span id="status" class="muted" role="status" aria-live="polite"></span>
+        </div>
+      </form>
+
+      <p id="error" class="error" role="alert" hidden></p>
+
+      <section id="progressPanel" class="panel" aria-live="polite" hidden>
+        <h2>Progress</h2>
+        <ul id="progress"></ul>
+        <details>
+          <summary>What happened</summary>
+          <ul id="details"></ul>
+        </details>
+      </section>
+
+      <section id="answerPanel" class="panel" hidden>
+        <h2>Briefing</h2>
+        <div id="answer"></div>
+      </section>
+
+      <section id="sourcesPanel" class="panel" hidden>
+        <h2>Sources</h2>
+        <ul id="citations"></ul>
+      </section>
+    </section>
+  </main>
+
+  <script src="/lib/msal-browser/msal-browser.min.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>
