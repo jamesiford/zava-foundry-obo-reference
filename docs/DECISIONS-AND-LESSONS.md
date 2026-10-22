@@ -272,21 +272,43 @@ because the popular one stopped being free."
 - **[observed]** The bot's service name was `unknown_service:dotnet`; it is now set to `compass-bot`. Application Insights ingestion lags by a few
   minutes, so wait before concluding "nothing arrived".
 
-### B6a. Agent 365 observability: findings and what was built (offline only; nothing run against a live tenant)
-**What was built (option 1: use the hosting library's own exporter).** Export is **off by default**. `--agent365` on the publish tool sets
-`FOUNDRY_AGENT365_TRACING_ENABLED=true` in both hosted agents. `ValidateAgent365Tracing` fails fast at startup, naming the missing variables
-(never their values), if that flag is on but `FOUNDRY_HOSTING_ENVIRONMENT`, `FOUNDRY_AGENT_INSTANCE_CLIENT_ID` or `FOUNDRY_AGENT_TENANT_ID`
-is missing. We add our own `invoke_agent` span around each request and an `execute_tool` span around the MCP call (ZavaApi) and the Graph
-retrieval call (SharePoint), in `Agent365Telemetry.cs`. Application Insights export is unchanged and runs alongside. Content capture is off;
-span status carries only the exception type name. The brief's token-resolver interface and `Agent365__*` settings were **not** built: the
-library owns token acquisition, so there is nothing for them to configure.
+### B6a. Agent 365 observability: findings and what was built (offline tests, then a live check in dev on 22 Oct 2026)
+**What was built (option 1: use the hosting library's own exporter).** Our code does not start the export. `--agent365` on the publish tool writes
+`FOUNDRY_AGENT365_TRACING_ENABLED=true` into each hosted agent's definition, and `ValidateAgent365Tracing` fails fast at startup, naming the missing
+variables (never their values), if that flag is on but `FOUNDRY_HOSTING_ENVIRONMENT`, `FOUNDRY_AGENT_INSTANCE_CLIENT_ID` or `FOUNDRY_AGENT_TENANT_ID`
+is missing. **Export is not off by default, though:** in the dev environment a version published *without* the flag already exported to Agent 365
+(see "Live check, 22 Oct" below), so the platform must set it, and `--agent365` is an explicit marker rather than a switch. We add our own
+`invoke_agent` span around each request and an `execute_tool` span around the MCP call (ZavaApi) and the Graph retrieval call (SharePoint), in
+`Agent365Telemetry.cs`. Application Insights export is unchanged and runs alongside. Our spans carry no content; a failed span carries only the
+exception type name. The brief's token-resolver interface and `Agent365__*` settings were **not** built: the library owns token acquisition, so
+there is nothing for them to configure.
 **Redaction gaps closed.** The activity redactor now also covers `StatusDescription`; the log redactor replaces an exception whose text holds a
 token with a redacted copy (`RedactedException`). Span events (an instrumentation's exception event holds the message and stack trace) cannot be edited once added, so the activity
 redactor drops a span from every exporter if any event holds a token, rather than export it (**observed** offline with both the simple and the
 batch export processor; the cost is that one span is lost from Application Insights as well). Tests prove an exporter registered after the redactors never sees a token (and a control shows one registered before them does),
 which closes the redaction-order **[open]** item in B6 for the offline pipeline. The live agent has not been re-checked.
-**Still [open] (needs a live tenant):** who injects the two `FOUNDRY_*` variables at runtime and whether Foundry accepts user-set `FOUNDRY_*`
-names (`--agent365` relies on it); whether the platform's own setting overrides our default-off; the items below marked **[open]**.
+**Still [open]:** whether a user-set `FOUNDRY_AGENT365_TRACING_ENABLED=false` overrides the platform's setting and stops the export (not tried);
+whether Agent 365 accepted the spans (an HTTP 200 does not prove it); the items below marked **[open]**.
+
+**Live check, 22 Oct 2026** (dev environment; Application Insights queries, not the Agent 365 portal).
+- **[observed]** With the flag unset in the definition, `ZavaApiAgent` version 1 made 1,439 posts between 19 and 21 Oct to the Agent 365 service on the
+  app-only route (`/observabilityService/tenants/<tenant>/otlp/agents/<id>/traces`), all HTTP 200, about 1.4 s each, each paired with one
+  `DefaultAzureCredential` token request. The agent id in the URL was that version's instance identity. The library only exports when the flag is
+  `true`, so the platform sets it, and the earlier claim here that export is off by default is withdrawn.
+- **[observed]** Foundry accepts a user-set `FOUNDRY_*` variable: version 2 of both agents, published with `--agent365`, went `active` and shows the
+  variable in its stored definition. The instance identity is the same for version 1 and version 2, so the Agent 365 agent id does not change per version.
+- **[observed]** With the bot on version 2, our `invoke_agent` and `execute_tool` spans appeared in Application Insights for both agents (seven spans in
+  the window), carrying agent id, name, version, blueprint id, tenant id and the tool name and type. None carried an input or output message, a tool
+  argument or a tool result.
+- **[observed]** In the same window 199 posts to Agent 365 returned HTTP 200, each to the URL of the right agent identity. A search of every request,
+  dependency, trace and exception for `eyJ` and `Bearer ` found nothing, and there were no exceptions.
+- **[observed]** Every span, ours included, carried a `user.id`. It was the same value on both agents and for both demo people, and it resolved to the
+  bot's managed identity: the calling service, added by the platform, not a person. Our code still adds no person identifier.
+- **[observed]** Foundry's own spans for the prompt agent (role `responsesapi`) carried `gen_ai.input.messages`, `gen_ai.output.messages`,
+  `gen_ai.tool.call.arguments` and `gen_ai.tool.call.result`, so the question text and tool results are in Application Insights. That is platform
+  tracing, not our code. **[open]** Whether it can be turned off, and whether it is also sent to Agent 365.
+- **[observed]** The tenant has an `AGENT_365` licence SKU (5 of 8 assigned), so `tenant_not_licensed` is unlikely, though not ruled out.
+- **[open]** Whether Agent 365 shows the runs. A 200 is also returned for dropped spans, so look in the Agent 365 view for runs from each agent.
 
 Findings from the decompiled packages. Evidence tags: **[observed]** read in the decompiled `Azure.AI.AgentServer.Core 1.0.0-beta.26` and `Microsoft.OpenTelemetry 1.0.0-beta.1`;
 **[documented]** Learn or the package README; **[open]** cannot be settled offline.
@@ -297,7 +319,7 @@ Findings from the decompiled packages. Evidence tags: **[observed]** read in the
 - **[observed]** The library already turns on its own Agent 365 export (app-only, `/observabilityService/...` route) when
   `FOUNDRY_HOSTING_ENVIRONMENT` is set, `FOUNDRY_AGENT365_TRACING_ENABLED` is `true` and `FOUNDRY_AGENT_INSTANCE_CLIENT_ID` is set. It acquires its
   token with `DefaultAzureCredential` on the instance managed identity. This very likely explains the idle `observabilityService`
-  stream in B6. **[open]** Who sets those variables in the container (the platform or us) is unknown offline.
+stream in B6. The variables are set by the platform: see the live check above (a version published without our flag exported anyway).
 - **[observed]** Our `configure` callback, where `AddTokenRedaction()` runs, executes before the library's telemetry setup, so our
   redactors are registered ahead of the Agent 365 exporter. The library's `FoundryEnrichmentProcessor` is registered after the exporter and
   sets agent id and tenant id in `OnEnd`. **[open]** A test must prove the order, and whether the enrichment can lose a race with the
@@ -319,7 +341,7 @@ Findings from the decompiled packages. Evidence tags: **[observed]** read in the
   Creating an Entra agent identity alone does not register the instance.
 - **[open]** Whether the managed-identity token the library acquires is accepted by Agent 365 (Learn's S2S recipe is a different, two-step
   agent-identity token chain), and whether the library validates it as app-only.
-- **[open]** The idle-stream cause may instead be a feedback loop (HTTP instrumentation of the exporter's own posts).
+- **[open]** The idle-stream cause may instead be a feedback loop (HTTP instrumentation of the exporter's own posts). **[observed, 22 Oct]** Each post is paired with one token request, and the stream continues at a few posts a minute while almost idle (121 posts in about 21 minutes for `SharePointRetrievalAgent` version 2 with two requests). That fits a loop but does not prove one.
 
 ### B7. Teams packaging and publishing (status: **[observed]** one-to-one works for Maya and Daniel, and a group-chat @mention works, and Microsoft 365 Copilot works)
 - **[observed]** `developer.name` over 32 characters is rejected by the Teams admin center

@@ -43,15 +43,16 @@ MCP hosts therefore call `AddTokenRedaction()` *before* `AddServiceDefaults()` (
 Azure Monitor exporter. `RedactionPipelineTests` proves both halves against the real pipeline: tokens never reach an exporter
 when redaction is first, and *do* reach it when redaction is registered after the exporter.
 
-## Microsoft Agent 365 export (hosted agents; off by default; offline-verified only)
+## Microsoft Agent 365 export (hosted agents; exercised in dev up to the Agent 365 side)
 
-The hosting library already owns an Agent 365 exporter; this repo only switches it on and adds spans. Publish with `--agent365`
-to set `FOUNDRY_AGENT365_TRACING_ENABLED=true`. With the flag on, `ValidateAgent365Tracing` fails the agent at startup (naming the
-missing variables, never their values) unless `FOUNDRY_HOSTING_ENVIRONMENT`, `FOUNDRY_AGENT_INSTANCE_CLIENT_ID` and
-`FOUNDRY_AGENT_TENANT_ID` are set. Our code adds an `invoke_agent` span per request and an `execute_tool` span around the MCP call and the
-Graph retrieval call, carrying only tenant, agent id and agent name. Content capture is off, and a failed span keeps the exception type
-name only. The redactors run before the exporter; Application Insights export is unchanged. See
-[DECISIONS B6a](DECISIONS-AND-LESSONS.md) for the open live-tenant questions.
+The hosting library already owns an Agent 365 exporter and, in dev, exports without any switch from us; this repo adds spans and an explicit
+flag. Publish with `--agent365` to write `FOUNDRY_AGENT365_TRACING_ENABLED=true` into the definition (Foundry accepts it). With the flag on,
+`ValidateAgent365Tracing` fails the agent at startup (naming the missing variables, never their values) unless `FOUNDRY_HOSTING_ENVIRONMENT`,
+`FOUNDRY_AGENT_INSTANCE_CLIENT_ID` and `FOUNDRY_AGENT_TENANT_ID` are set. Our code adds an `invoke_agent` span per request and an `execute_tool`
+span around the MCP call and the Graph retrieval call, carrying tenant, agent id, agent name and tool name. Content capture is off, and a failed
+span keeps the exception type name only. The redactors run before the exporter; Application Insights export is unchanged. The platform adds a
+`user.id` to every span; in dev it was the bot's managed identity, not a person. Foundry's own prompt-agent spans carry question and answer text
+(platform tracing, not ours). See [DECISIONS B6a](DECISIONS-AND-LESSONS.md) for the live check and the open questions.
 
 ## How it is tested
 
