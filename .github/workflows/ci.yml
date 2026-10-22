@@ -21,7 +21,7 @@ jobs:
   build-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-dotnet@v6
         with:
@@ -71,7 +71,7 @@ jobs:
       COMPASS_TEST_USERB_NAME: ${{ secrets.COMPASS_TEST_USERB_NAME }}
       COMPASS_TEST_USERB_MEMBER: ${{ secrets.COMPASS_TEST_USERB_MEMBER }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
@@ -101,7 +101,7 @@ jobs:
       AZURE_ENV_NAME: dev
       AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
