@@ -3,6 +3,7 @@ using Compass.Agents.Contracts;
 using Compass.Agents.Contracts.Briefing;
 using Compass.Agents.Hosted.ZavaApi;
 using Compass.Agents.Hosted.ZavaApi.Clients;
+using Compass.Agents.Hosting;
 using Compass.Shared.Observability;
 
 // Foundry runs this container with immutable environment variables per agent version, so everything configurable is read
@@ -10,6 +11,7 @@ using Compass.Shared.Observability;
 ResponsesServer.Run<ZavaApiResponseHandler>(args: args, configure: builder =>
 {
     builder.Services.AddTokenRedaction();
+    builder.Services.ValidateAgent365Tracing(builder.Configuration);
 
     var mcpEndpoint = new Uri(builder.Configuration["ZavaApi:McpEndpoint"] ?? "http://localhost:7071/runtime/webhooks/mcp");
     builder.Services.AddSingleton<IZavaApiMcpClient>(_ => new ZavaApiMcpClient(mcpEndpoint));

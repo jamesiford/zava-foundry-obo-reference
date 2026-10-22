@@ -43,6 +43,17 @@ MCP hosts therefore call `AddTokenRedaction()` *before* `AddServiceDefaults()` (
 Azure Monitor exporter. `RedactionPipelineTests` proves both halves against the real pipeline: tokens never reach an exporter
 when redaction is first, and *do* reach it when redaction is registered after the exporter.
 
+## Microsoft Agent 365 export (hosted agents; exercised in dev up to the Agent 365 side)
+
+The hosting library already owns an Agent 365 exporter and, in dev, exports without any switch from us; this repo adds spans and an explicit
+flag. Publish with `--agent365` to write `FOUNDRY_AGENT365_TRACING_ENABLED=true` into the definition (Foundry accepts it). With the flag on,
+`ValidateAgent365Tracing` fails the agent at startup (naming the missing variables, never their values) unless `FOUNDRY_HOSTING_ENVIRONMENT`,
+`FOUNDRY_AGENT_INSTANCE_CLIENT_ID` and `FOUNDRY_AGENT_TENANT_ID` are set. Our code adds an `invoke_agent` span per request and an `execute_tool`
+span around the MCP call and the Graph retrieval call, carrying tenant, agent id, agent name and tool name. Content capture is off, and a failed
+span keeps the exception type name only. The redactors run before the exporter; Application Insights export is unchanged. The platform adds a
+`user.id` to every span; in dev it was the bot's managed identity, not a person. Foundry's own prompt-agent spans carry question and answer text
+(platform tracing, not ours). See [DECISIONS B6a](DECISIONS-AND-LESSONS.md) for the live check and the open questions.
+
 ## How it is tested
 
 | What | Test | What it proves |
@@ -74,13 +85,15 @@ In Application Insights (or the Aspire dashboard), for a real turn:
 
 ## Not implemented / known limits
 
-- **Exception text is not scrubbed in the processor.** `TokenRedactingLogProcessor` does not rewrite the exception attached
-  to a log record, so a token placed *in an exception message* could still be exported as `exception.message`. Mitigation is
-  by construction — no code path puts a token in an exception message — and case 3 asserts exception `ToString()` output
-  is token-free. If you want defence in depth, wrap exceptions before logging.
+- **Exception text is scrubbed only when it contains a token.** `TokenRedactingLogProcessor` replaces a log record's exception with a
+  redacted copy (`RedactedException`: same type name, redacted message and stack trace) when its text holds a JWT. Span
+  `StatusDescription` is redacted too. Exception *events* on an Activity cannot be edited, so the redactor drops the whole span from every exporter if an event holds a token; no code of ours adds
+  any, and Agent 365 spans record only the exception type name. Agent 365 spans do not carry a conversation id (open; see B6a in
+  DECISIONS-AND-LESSONS), so a run may not group into a conversation there.
 - **Hosted agents export only when the Foundry project has Application Insights connected.** Before 19 Oct it was not, so agent-side
   traces and logs were absent. Now they appear (role `ZavaApiAgent`), with Foundry's own `invoke_agent` span (role `agentsv2`). Open:
-  whether our redaction processors run ahead of the library's exporter, and a steady stream of exporter self-telemetry.
+  a steady stream of exporter self-telemetry (see the Agent 365 section below). Offline tests prove the redactors run ahead of any
+  exporter registered after them; the live agent has not been re-checked.
 - **Cross-service correlation works through standard trace context.** Observed: all 27 `ZavaApiAgent` calls had the bot's operation id on the
   MCP Function's requests. There is still **no custom per-turn operation ID** as spec §13 describes.
 - **No dashboards or saved queries** ("requests by person, by agent, with zero token leakage") are authored; the Kusto query

@@ -62,6 +62,36 @@ public sealed class HostedAgentCatalogTests
     }
 
     [Fact]
+    public void Agent365_export_is_off_by_default_and_the_variable_is_not_set()
+    {
+        var specs = HostedAgentCatalog.Create(Settings("https://f.example"));
+
+        Assert.All(specs, s => Assert.DoesNotContain(HostedAgentCatalog.Agent365TracingVariable, s.EnvironmentVariables.Keys));
+    }
+
+    [Fact]
+    public void Agent365_switch_sets_the_variable_on_both_agents_and_keeps_the_rest_of_the_environment()
+    {
+        var specs = HostedAgentCatalog.Create(Settings("https://f.example") with { Agent365Enabled = true });
+
+        Assert.All(specs, s => Assert.Equal("true", s.EnvironmentVariables["FOUNDRY_AGENT365_TRACING_ENABLED"]));
+        Assert.Equal("https://f.example/runtime/webhooks/mcp", specs.Single(s => s.Name == "ZavaApiAgent").EnvironmentVariables["ZavaApi__McpEndpoint"]);
+        Assert.Equal(["FOUNDRY_AGENT365_TRACING_ENABLED"], specs.Single(s => s.Name == "SharePointRetrievalAgent").EnvironmentVariables.Keys);
+    }
+
+    [Fact]
+    public void What_if_shows_whether_agent365_export_is_off_or_on()
+    {
+        var off = Settings("https://f.example", whatIf: true);
+        var on = off with { Agent365Enabled = true };
+
+        Assert.Contains("Agent 365 export: off", PublishPlanFormatter.Format(HostedAgentCatalog.Create(off), off));
+        var onPlan = PublishPlanFormatter.Format(HostedAgentCatalog.Create(on), on);
+        Assert.Contains("Agent 365 export: ON", onPlan);
+        Assert.Contains("FOUNDRY_AGENT365_TRACING_ENABLED=true", onPlan);
+    }
+
+    [Fact]
     public void Spec_paths_point_at_real_projects_and_entry_assemblies_match_project_names()
     {
         var root = CommandLine.FindRepositoryRoot(AppContext.BaseDirectory)!;

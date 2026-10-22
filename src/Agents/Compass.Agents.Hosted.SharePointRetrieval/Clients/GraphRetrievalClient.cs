@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using Compass.Agents.Contracts.Exceptions;
 using Compass.Agents.Contracts.Retrieval;
+using Compass.Agents.Hosting;
 using Compass.Shared.Identity.Tokens;
 
 namespace Compass.Agents.Hosted.SharePointRetrieval.Clients;
@@ -19,6 +20,20 @@ public sealed class GraphRetrievalClient(HttpClient http) : IGraphRetrievalClien
     public const string RetrievalPath = "v1.0/copilot/retrieval";
 
     public async Task<RetrievalResult> RetrieveAsync(string graphToken, string query, int maxResults, CancellationToken ct)
+    {
+        using var span = Agent365Telemetry.StartExecuteTool("copilot_retrieval", "graph");
+        try
+        {
+            return await RetrieveCoreAsync(graphToken, query, maxResults, ct);
+        }
+        catch (Exception ex)
+        {
+            span.Fail(ex);
+            throw;
+        }
+    }
+
+    private async Task<RetrievalResult> RetrieveCoreAsync(string graphToken, string query, int maxResults, CancellationToken ct)
     {
         using var message = new HttpRequestMessage(HttpMethod.Post, RetrievalPath)
         {

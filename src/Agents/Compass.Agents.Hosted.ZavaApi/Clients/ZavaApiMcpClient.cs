@@ -2,6 +2,7 @@ using System.Net;
 using System.Text.Json;
 using Compass.Agents.Contracts.Briefing;
 using Compass.Agents.Contracts.Exceptions;
+using Compass.Agents.Hosting;
 using Compass.Shared.Identity.Tokens;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
@@ -54,6 +55,20 @@ public sealed class ZavaApiMcpClient(Uri endpoint) : IZavaApiMcpClient
     }
 
     private static async Task<T> CallAsync<T>(McpClient client, string tool, string memberNumber, CancellationToken ct)
+    {
+        using var span = Agent365Telemetry.StartExecuteTool(tool, "mcp");
+        try
+        {
+            return await CallCoreAsync<T>(client, tool, memberNumber, ct);
+        }
+        catch (Exception ex)
+        {
+            span.Fail(ex);
+            throw;
+        }
+    }
+
+    private static async Task<T> CallCoreAsync<T>(McpClient client, string tool, string memberNumber, CancellationToken ct)
     {
         var result = await client.CallToolAsync(
             tool,
