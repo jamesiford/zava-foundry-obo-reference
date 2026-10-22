@@ -135,6 +135,8 @@ dotnet run --project ../tools/Compass.Tools.PublishAgents -- `
 
 This runs `dotnet publish` for linux-x64, creates a new agent version from the zip (runtime `dotnet_10`, Responses protocol 2.0.0) and polls until it is `active`. Publish **after** provisioning, because the MCP endpoint is baked into the ZavaApi agent version, and publish again if that host name changes. It needs the Foundry Project Manager role. The tool writes `infra/.generated/agent-versions.json`.
 
+**Optional: Microsoft Agent 365 observability (not exercised live).** Add `--agent365` to publish with `FOUNDRY_AGENT365_TRACING_ENABLED=true` in both agents. It is off by default and Application Insights keeps working either way. When on, the hosted agent fails at startup, naming the missing variable, unless `FOUNDRY_HOSTING_ENVIRONMENT`, `FOUNDRY_AGENT_INSTANCE_CLIENT_ID` and `FOUNDRY_AGENT_TENANT_ID` are present; whether the platform supplies them is unverified. Your tenant needs an Agent 365 licence and the agent instance registered (or the `Agent365.Observability.OtelWrite` role with admin consent). No tokens, message content or person identity are exported. See [DECISIONS B6a](DECISIONS-AND-LESSONS.md).
+
 ### Step 5: tell the bot which versions to call (exercised)
 
 ```powershell
@@ -259,3 +261,4 @@ Use `Invoke-RestMethod` rather than `az rest` with a `$filter`: the `az` `.cmd` 
 - A real claims step-up demand from Conditional Access.
 - Step 9, the Teams upload by an administrator (documented from the Teams admin center, not run in the clean-clone test).
 - Per-agent Foundry application scope and per-agent RBAC (blocked by a preview API issue).
+- Agent 365 export (`--agent365`). Offline tests only. To verify live: the `invoke_agent` and `execute_tool` spans appear in Agent 365; posts return 200 rather than 403; the tenant is licensed; the idle `observabilityService` stream stops when the flag is off; no `eyJ` text in Application Insights or Agent 365; Application Insights still receives traces.

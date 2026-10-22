@@ -26,6 +26,8 @@ public static class CommandLine
         Usage: dotnet run --project tools/Compass.Tools.PublishAgents -- [options]
 
           --what-if                 Print the plan and exit. No build, no network, no credential.
+          --agent365                Turn on Agent 365 trace export for the published versions
+                                    (sets FOUNDRY_AGENT365_TRACING_ENABLED=true). Default: off.
           --agent <name>            Publish only this agent (repeatable). Default: all.
           --project-endpoint <url>  Foundry project endpoint (env FOUNDRY_PROJECT_ENDPOINT).
           --mcp-endpoint <url>      Function App endpoint for the ZavaApiAgent (env SERVICE_MCP_ENDPOINT).
@@ -42,6 +44,7 @@ public static class CommandLine
         string? repoRoot = null;
         var only = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var whatIf = false;
+        var agent365 = false;
 
         for (var i = 0; i < args.Count; i++)
         {
@@ -51,6 +54,9 @@ public static class CommandLine
                     return CommandLineResult.Help();
                 case "--what-if":
                     whatIf = true;
+                    break;
+                case "--agent365":
+                    agent365 = true;
                     break;
                 case "--agent" or "--project-endpoint" or "--mcp-endpoint" or "--manifest" or "--repo-root":
                     if (i + 1 >= args.Count || args[i + 1].StartsWith("--", StringComparison.Ordinal))
@@ -107,7 +113,8 @@ public static class CommandLine
             root,
             manifest ?? Path.Combine(root, "infra", ".generated", "agent-versions.json"),
             only,
-            whatIf));
+            whatIf,
+            agent365));
     }
 
     public static string? FindRepositoryRoot(string startDirectory)

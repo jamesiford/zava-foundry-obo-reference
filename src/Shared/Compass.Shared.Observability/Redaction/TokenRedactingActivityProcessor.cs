@@ -25,5 +25,11 @@ public sealed class TokenRedactingActivityProcessor : BaseProcessor<Activity>
         {
             data.DisplayName = JwtRedactor.Redact(data.DisplayName)!;
         }
+
+        // Exporters (Agent 365 included) send the status description, and a failed span's description is usually an exception message.
+        if (JwtRedactor.ContainsToken(data.StatusDescription))
+        {
+            data.SetStatus(data.Status, JwtRedactor.Redact(data.StatusDescription));
+        }
     }
 }

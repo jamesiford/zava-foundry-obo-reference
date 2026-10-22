@@ -31,7 +31,7 @@ public static class HostedAgentCatalog
                 "src/Agents/Compass.Agents.Hosted.SharePointRetrieval/Compass.Agents.Hosted.SharePointRetrieval.csproj",
                 Cpu: "0.5",
                 Memory: "1Gi",
-                EnvironmentVariables: new Dictionary<string, string>()));
+                EnvironmentVariables: WithAgent365(settings, new Dictionary<string, string>())));
         }
 
         if (Selects(settings, ZavaApiAgent))
@@ -41,10 +41,23 @@ public static class HostedAgentCatalog
                 "src/Agents/Compass.Agents.Hosted.ZavaApi/Compass.Agents.Hosted.ZavaApi.csproj",
                 Cpu: "0.5",
                 Memory: "1Gi",
-                EnvironmentVariables: new Dictionary<string, string> { ["ZavaApi__McpEndpoint"] = ResolveMcpEndpoint(settings) }));
+                EnvironmentVariables: WithAgent365(settings, new Dictionary<string, string> { ["ZavaApi__McpEndpoint"] = ResolveMcpEndpoint(settings) })));
         }
 
         return specs;
+    }
+
+    /// <summary>The Foundry hosting library's own switch for Agent 365 trace export. Not set unless asked for.</summary>
+    public const string Agent365TracingVariable = "FOUNDRY_AGENT365_TRACING_ENABLED";
+
+    private static Dictionary<string, string> WithAgent365(PublishSettings settings, Dictionary<string, string> environment)
+    {
+        if (settings.Agent365Enabled)
+        {
+            environment[Agent365TracingVariable] = "true";
+        }
+
+        return environment;
     }
 
     /// <summary>Turns the bare Function App host (the azd <c>SERVICE_MCP_ENDPOINT</c> output) into the webhook URL.</summary>

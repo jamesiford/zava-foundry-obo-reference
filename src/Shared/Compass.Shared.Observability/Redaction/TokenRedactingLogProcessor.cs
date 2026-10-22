@@ -17,6 +17,12 @@ public sealed class TokenRedactingLogProcessor : BaseProcessor<LogRecord>
         data.Body = JwtRedactor.Redact(data.Body);
         data.FormattedMessage = JwtRedactor.Redact(data.FormattedMessage);
 
+        // Exporters read the exception's type, message and stack trace, and an exporter that fails often logs its own exception.
+        if (data.Exception is { } exception && JwtRedactor.ContainsToken(exception.ToString()))
+        {
+            data.Exception = new RedactedException(exception);
+        }
+
         if (data.Attributes is { Count: > 0 } attributes)
         {
             data.Attributes = attributes

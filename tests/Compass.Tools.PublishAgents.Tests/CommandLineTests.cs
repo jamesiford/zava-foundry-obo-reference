@@ -21,6 +21,13 @@ public sealed class CommandLineTests
     }
 
     [Fact]
+    public void Agent365_export_is_off_unless_the_flag_is_passed()
+    {
+        Assert.False(CommandLine.Parse(["--what-if"], Env(), Root).Settings!.Agent365Enabled);
+        Assert.True(CommandLine.Parse(["--what-if", "--agent365"], Env(), Root).Settings!.Agent365Enabled);
+    }
+
+    [Fact]
     public void A_real_run_without_a_project_endpoint_fails_with_a_helpful_message()
     {
         var result = CommandLine.Parse([], Env(), Root);

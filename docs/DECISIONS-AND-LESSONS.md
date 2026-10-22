@@ -267,10 +267,51 @@ because the popular one stopped being free."
 - **[open]** The hosted agent also exports a steady stream of telemetry about its own observability exporter (about 36 posts to an
   `observabilityService` OTLP endpoint in four minutes while idle, plus token-acquisition spans). Cause and switch-off unknown.
 - **[open]** Whether our token-redaction processors run before the hosting library's exporter in the hosted agent. A search for `eyJ`
-  and `Bearer ` across three days of telemetry found nothing, but only a test ping has gone through the hosted agent since connecting.
+  and `Bearer ` across three days of telemetry found nothing, but only a test ping has gone through the hosted agent since connecting. Offline order is now tested; see B6a.
 - **[observed, 20 Oct]** Agent Framework workflow telemetry is **opt-in**: spans appear only if the builder calls `WithOpenTelemetry()`; registering the `Microsoft.Agents.AI.Workflows` source is not enough. We had not, so there were no workflow spans. It is now on, with content recording off, and a test checks both. **[observed, 20 Oct 22:11 UTC]** Seen live: one operation id spans the bot, Foundry, the hosted agent and the MCP function, and the workflow and executor spans carry no message content.
 - **[observed]** The bot's service name was `unknown_service:dotnet`; it is now set to `compass-bot`. Application Insights ingestion lags by a few
   minutes, so wait before concluding "nothing arrived".
+
+### B6a. Agent 365 observability: findings and what was built (offline only; nothing run against a live tenant)
+**What was built (option 1: use the hosting library's own exporter).** Export is **off by default**. `--agent365` on the publish tool sets
+`FOUNDRY_AGENT365_TRACING_ENABLED=true` in both hosted agents. `AddAgent365Tracing` fails fast at startup, naming the missing variables
+(never their values), if that flag is on but `FOUNDRY_HOSTING_ENVIRONMENT`, `FOUNDRY_AGENT_INSTANCE_CLIENT_ID` or `FOUNDRY_AGENT_TENANT_ID`
+is missing. We add our own `invoke_agent` span around each request and an `execute_tool` span around the MCP call (ZavaApi) and the Graph
+retrieval call (SharePoint), in `Agent365Telemetry.cs`. Application Insights export is unchanged and runs alongside. Content capture is off;
+span status carries only the exception type name. The brief's token-resolver interface and `Agent365__*` settings were **not** built: the
+library owns token acquisition, so there is nothing for them to configure.
+**Redaction gaps closed.** The activity redactor now also covers `StatusDescription`; the log redactor replaces an exception whose text holds a
+token with a redacted copy (`RedactedException`). Activity event tags (exception events) still cannot be mutated and stay a known gap; our code
+adds none. Tests prove an exporter registered after the redactors never sees a token (and a control shows one registered before them does),
+which closes the redaction-order **[open]** item in B6 for the offline pipeline. The live agent has not been re-checked.
+**Still [open] (needs a live tenant):** who injects the two `FOUNDRY_*` variables at runtime and whether Foundry accepts user-set `FOUNDRY_*`
+names (`--agent365` relies on it); whether the platform's own setting overrides our default-off; the items below marked **[open]**.
+
+Findings from the decompiled packages. Evidence tags: **[observed]** read in the decompiled `Azure.AI.AgentServer.Core 1.0.0-beta.26` and `Microsoft.OpenTelemetry 1.0.0-beta.1`;
+**[documented]** Learn or the package README; **[open]** cannot be settled offline.
+- **[observed]** `Azure.AI.AgentServer.Responses` (beta.6) already brings `Microsoft.OpenTelemetry` transitively, with the Agent 365 runtime
+  (exporter, `InvokeAgentScope`, `ExecuteToolScope`, `BaggageBuilder`) merged into that one assembly. No new package is needed.
+- **[observed]** The hosting library itself calls `UseMicrosoftOpenTelemetry` while building the host. The distro throws
+  "Multiple calls to UseMicrosoftOpenTelemetry on the same IServiceCollection are not supported", so **this repo must not call it**.
+- **[observed]** The library already turns on its own Agent 365 export (app-only, `/observabilityService/...` route) when
+  `FOUNDRY_HOSTING_ENVIRONMENT` is set, `FOUNDRY_AGENT365_TRACING_ENABLED` is `true` and `FOUNDRY_AGENT_INSTANCE_CLIENT_ID` is set. It acquires its
+  token with `DefaultAzureCredential` on the instance managed identity. This very likely explains the idle `observabilityService`
+  stream in B6. **[open]** Who sets those variables in the container (the platform or us) is unknown offline.
+- **[observed]** Our `configure` callback, where `AddTokenRedaction()` runs, executes before the library's telemetry setup, so our
+  redactors are registered ahead of the Agent 365 exporter. The library's `FoundryEnrichmentProcessor` is registered after the exporter and
+  sets agent id and tenant id in `OnEnd`. **[open]** A test must prove the order, and whether the enrichment can lose a race with the
+  batch export is unverified.
+- **[observed]** The exporter runs on a batch thread, never on the request path; it catches token and HTTP failures. It does log exception
+  objects, which pass through our log redactor. Agent 365 receives traces only.
+- **[observed]** The distro copies baggage keys, including content keys (`gen_ai.input.messages` and others) and PII keys (`user.email`,
+  `user.name`), onto spans. Never put those in baggage. Our baggage is limited to tenant, agent and conversation ids.
+- **[documented]** Spans are accepted only if the URL agent id, the token `appid` and each span's `gen_ai.agent.id` match, and the tenant
+  matches. A tenant with no assigned M365 E7 or Agent 365 licence returns 200 but drops spans (`tenant_not_licensed`). An agent instance
+  registered with Agent 365 needs no `Agent365.Observability.OtelWrite` role; an unregistered identity needs that role plus admin consent.
+  Creating an Entra agent identity alone does not register the instance.
+- **[open]** Whether the managed-identity token the library acquires is accepted by Agent 365 (Learn's S2S recipe is a different, two-step
+  agent-identity token chain), and whether the library validates it as app-only.
+- **[open]** The idle-stream cause may instead be a feedback loop (HTTP instrumentation of the exporter's own posts).
 
 ### B7. Teams packaging and publishing (status: **[observed]** one-to-one works for Maya and Daniel, and a group-chat @mention works, and Microsoft 365 Copilot works)
 - **[observed]** `developer.name` over 32 characters is rejected by the Teams admin center

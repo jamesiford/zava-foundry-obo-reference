@@ -3,6 +3,7 @@ using Compass.Agents.Contracts;
 using Compass.Agents.Contracts.Retrieval;
 using Compass.Agents.Hosted.SharePointRetrieval;
 using Compass.Agents.Hosted.SharePointRetrieval.Clients;
+using Compass.Agents.Hosting;
 using Compass.Shared.Observability;
 
 // Foundry runs this container with immutable environment variables per agent version, so everything configurable is read
@@ -10,6 +11,7 @@ using Compass.Shared.Observability;
 ResponsesServer.Run<SharePointRetrievalResponseHandler>(args: args, configure: builder =>
 {
     builder.Services.AddTokenRedaction();
+    builder.Services.AddAgent365Tracing(builder.Configuration);
 
     var graphBaseUrl = builder.Configuration["Graph:BaseUrl"] ?? "https://graph.microsoft.com/";
     builder.Services.AddHttpClient<IGraphRetrievalClient, GraphRetrievalClient>(client => client.BaseAddress = new Uri(graphBaseUrl));

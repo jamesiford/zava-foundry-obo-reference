@@ -87,7 +87,7 @@ What the deployment creates: a Foundry account, project and model deployment, Az
 | [`docs/DECISIONS-AND-LESSONS.md`](docs/DECISIONS-AND-LESSONS.md) | Know why a choice was made and what failed first |
 | [`docs/LIVE-FINDINGS.md`](docs/LIVE-FINDINGS.md) | See the evidence: what the live run proved and broke, each tagged observed, documented or open |
 | [`docs/SHAREPOINT-ROUTES.md`](docs/SHAREPOINT-ROUTES.md) | Choose a SharePoint retrieval option and see why the Retrieval API was used |
-| [`docs/OBSERVABILITY.md`](docs/OBSERVABILITY.md) | See what is instrumented and how token redaction is checked |
+| [`docs/OBSERVABILITY.md`](docs/OBSERVABILITY.md) | See what is instrumented, how token redaction is checked, and the optional Agent 365 export |
 | [`docs/IMPLEMENTATION-NOTES.md`](docs/IMPLEMENTATION-NOTES.md) | See where the build differs from the dev spec |
 | [`docs/Zava-Compass-OBO-Teams-to-SharePoint.md`](docs/Zava-Compass-OBO-Teams-to-SharePoint.md) | Read the research brief and its Microsoft Learn citations |
 | [`docs/Zava-Compass-OBO-DevSpec.md`](docs/Zava-Compass-OBO-DevSpec.md) | See the original development spec (a historical build plan) |

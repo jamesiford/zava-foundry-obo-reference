@@ -68,6 +68,29 @@ public sealed class RedactionPipelineTests
         Assert.DoesNotContain(exported, e => e.Contains(token, StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void Exporter_never_sees_a_token_in_a_logged_exception_when_redaction_is_registered_first()
+    {
+        var token = FakeTokens.Create("exception");
+        var exceptions = new List<Exception?>();
+
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddTokenRedaction();
+        services.AddOpenTelemetry().WithLogging(l => l
+            .AddProcessor(new SimpleLogRecordExportProcessor(new CaptureExceptionExporter(exceptions))));
+        using var provider = services.BuildServiceProvider();
+
+        provider.GetRequiredService<ILoggerFactory>().CreateLogger("test")
+            .LogError(new InvalidOperationException("Downstream rejected " + token), "Call failed");
+
+        var exported = Assert.Single(exceptions);
+        Assert.NotNull(exported);
+        Assert.DoesNotContain(token, exported.ToString(), StringComparison.Ordinal);
+        Assert.DoesNotContain(token, exported.Message, StringComparison.Ordinal);
+        Assert.Contains(typeof(InvalidOperationException).FullName!, exported.Message);
+    }
+
     private static ServiceProvider BuildLogging(bool redactionFirst, List<string> exported)
     {
         var services = new ServiceCollection();
@@ -100,6 +123,19 @@ public sealed class RedactionPipelineTests
                 {
                     sink.Add($"{attribute.Key}={attribute.Value}");
                 }
+            }
+
+            return ExportResult.Success;
+        }
+    }
+
+    private sealed class CaptureExceptionExporter(List<Exception?> sink) : BaseExporter<LogRecord>
+    {
+        public override ExportResult Export(in Batch<LogRecord> batch)
+        {
+            foreach (var record in batch)
+            {
+                sink.Add(record.Exception);
             }
 
             return ExportResult.Success;

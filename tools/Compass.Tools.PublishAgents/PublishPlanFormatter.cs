@@ -11,6 +11,9 @@ public static class PublishPlanFormatter
         text.AppendLine("Publish plan (nothing is built, uploaded or created in what-if mode)");
         text.AppendLine($"  Foundry project : {settings.ProjectEndpoint ?? "<FOUNDRY_PROJECT_ENDPOINT>"}");
         text.AppendLine($"  Manifest        : {settings.ManifestPath}");
+        text.AppendLine(settings.Agent365Enabled
+            ? $"  Agent 365 export: ON ({HostedAgentCatalog.Agent365TracingVariable}=true in each agent's environment)"
+            : $"  Agent 365 export: off ({HostedAgentCatalog.Agent365TracingVariable} is not set; pass --agent365 to turn it on)");
         text.AppendLine();
 
         foreach (var spec in specs)

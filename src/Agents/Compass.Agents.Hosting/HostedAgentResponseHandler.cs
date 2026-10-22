@@ -39,6 +39,8 @@ public abstract class HostedAgentResponseHandler<TRequest, TResponse>(
             throw new BadRequestException("The response request input must be the agent's JSON request.", "input");
         }
 
+        // Ids only: the span and its baggage carry the agent's identity, never the person's, the request or the result.
+        using var span = Agent365Telemetry.StartInvokeAgent(agent.GetType().Name);
         try
         {
             var result = await agent.HandleAsync(typedRequest, callContext, ct);
@@ -46,11 +48,17 @@ public abstract class HostedAgentResponseHandler<TRequest, TResponse>(
         }
         catch (Exception ex) when (AgentErrors.FromException(ex) is { } mapped)
         {
+            span.Fail(ex);
             // The message is token-free by construction; only the code and person are logged.
             logger.LogWarning("{Agent} failed closed for person {PersonObjectId}: {Code}", agent.GetType().Name, callContext.PersonObjectId, mapped.Error.Code);
             throw new ResponsesApiException(
                 new Error(mapped.Error.Code, AgentErrors.PackMessage(mapped.Error)),
                 mapped.StatusCode);
+        }
+        catch (Exception ex)
+        {
+            span.Fail(ex);
+            throw;
         }
     }
 }
