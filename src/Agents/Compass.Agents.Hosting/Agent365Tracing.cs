@@ -43,7 +43,7 @@ public static class Agent365Tracing
     /// the default. Call it right after <c>AddTokenRedaction()</c> so the redactors stay ahead of every exporter.
     /// </summary>
     /// <exception cref="InvalidOperationException">Export is on and a required setting is missing (names only).</exception>
-    public static IServiceCollection AddAgent365Tracing(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection ValidateAgent365Tracing(this IServiceCollection services, IConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);

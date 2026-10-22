@@ -11,7 +11,7 @@ using Compass.Shared.Observability;
 ResponsesServer.Run<SharePointRetrievalResponseHandler>(args: args, configure: builder =>
 {
     builder.Services.AddTokenRedaction();
-    builder.Services.AddAgent365Tracing(builder.Configuration);
+    builder.Services.ValidateAgent365Tracing(builder.Configuration);
 
     var graphBaseUrl = builder.Configuration["Graph:BaseUrl"] ?? "https://graph.microsoft.com/";
     builder.Services.AddHttpClient<IGraphRetrievalClient, GraphRetrievalClient>(client => client.BaseAddress = new Uri(graphBaseUrl));

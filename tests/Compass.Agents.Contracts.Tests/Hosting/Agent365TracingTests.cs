@@ -15,7 +15,7 @@ public sealed class Agent365TracingTests
         var configuration = Config();
 
         Assert.False(Agent365Tracing.IsEnabled(configuration));
-        new ServiceCollection().AddAgent365Tracing(configuration);
+        new ServiceCollection().ValidateAgent365Tracing(configuration);
     }
 
     [Theory]
@@ -24,14 +24,14 @@ public sealed class Agent365TracingTests
     [InlineData("yes")]
     public void Anything_but_true_leaves_it_off_even_with_settings_missing(string value)
     {
-        new ServiceCollection().AddAgent365Tracing(Config((Agent365Tracing.EnabledVariable, value)));
+        new ServiceCollection().ValidateAgent365Tracing(Config((Agent365Tracing.EnabledVariable, value)));
     }
 
     [Fact]
     public void Turned_on_without_its_settings_fails_fast_naming_every_missing_setting()
     {
         var ex = Assert.Throws<InvalidOperationException>(
-            () => new ServiceCollection().AddAgent365Tracing(Config((Agent365Tracing.EnabledVariable, "TRUE"))));
+            () => new ServiceCollection().ValidateAgent365Tracing(Config((Agent365Tracing.EnabledVariable, "TRUE"))));
 
         Assert.All(Agent365Tracing.RequiredVariables, name => Assert.Contains(name, ex.Message));
     }
@@ -39,7 +39,7 @@ public sealed class Agent365TracingTests
     [Fact]
     public void The_error_names_settings_but_never_echoes_a_value()
     {
-        var ex = Assert.Throws<InvalidOperationException>(() => new ServiceCollection().AddAgent365Tracing(Config(
+        var ex = Assert.Throws<InvalidOperationException>(() => new ServiceCollection().ValidateAgent365Tracing(Config(
             (Agent365Tracing.EnabledVariable, "true"),
             (Agent365Tracing.HostingEnvironmentVariable, "hosted-secret-value"),
             (Agent365Tracing.TenantIdVariable, "tenant-secret-value"))));
@@ -52,7 +52,7 @@ public sealed class Agent365TracingTests
     [Fact]
     public void Turned_on_with_everything_present_starts()
     {
-        new ServiceCollection().AddAgent365Tracing(Config(
+        new ServiceCollection().ValidateAgent365Tracing(Config(
             (Agent365Tracing.EnabledVariable, "true"),
             (Agent365Tracing.HostingEnvironmentVariable, "x"),
             (Agent365Tracing.InstanceClientIdVariable, "x"),

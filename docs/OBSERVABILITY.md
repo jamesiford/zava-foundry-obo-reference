@@ -46,7 +46,7 @@ when redaction is first, and *do* reach it when redaction is registered after th
 ## Microsoft Agent 365 export (hosted agents; off by default; offline-verified only)
 
 The hosting library already owns an Agent 365 exporter; this repo only switches it on and adds spans. Publish with `--agent365`
-to set `FOUNDRY_AGENT365_TRACING_ENABLED=true`. With the flag on, `AddAgent365Tracing` fails the agent at startup (naming the
+to set `FOUNDRY_AGENT365_TRACING_ENABLED=true`. With the flag on, `ValidateAgent365Tracing` fails the agent at startup (naming the
 missing variables, never their values) unless `FOUNDRY_HOSTING_ENVIRONMENT`, `FOUNDRY_AGENT_INSTANCE_CLIENT_ID` and
 `FOUNDRY_AGENT_TENANT_ID` are set. Our code adds an `invoke_agent` span per request and an `execute_tool` span around the MCP call and the
 Graph retrieval call, carrying only tenant, agent id and agent name. Content capture is off, and a failed span keeps the exception type
@@ -86,8 +86,9 @@ In Application Insights (or the Aspire dashboard), for a real turn:
 
 - **Exception text is scrubbed only when it contains a token.** `TokenRedactingLogProcessor` replaces a log record's exception with a
   redacted copy (`RedactedException`: same type name, redacted message and stack trace) when its text holds a JWT. Span
-  `StatusDescription` is redacted too. Exception *events* on an Activity cannot be mutated, so they stay a gap; no code of ours adds
-  any, and Agent 365 spans record only the exception type name.
+  `StatusDescription` is redacted too. Exception *events* on an Activity cannot be edited, so the redactor drops the whole span from every exporter if an event holds a token; no code of ours adds
+  any, and Agent 365 spans record only the exception type name. Agent 365 spans do not carry a conversation id (open; see B6a in
+  DECISIONS-AND-LESSONS), so a run may not group into a conversation there.
 - **Hosted agents export only when the Foundry project has Application Insights connected.** Before 19 Oct it was not, so agent-side
   traces and logs were absent. Now they appear (role `ZavaApiAgent`), with Foundry's own `invoke_agent` span (role `agentsv2`). Open:
   a steady stream of exporter self-telemetry (see the Agent 365 section below). Offline tests prove the redactors run ahead of any

@@ -91,6 +91,100 @@ public sealed class RedactionPipelineTests
         Assert.Contains(typeof(InvalidOperationException).FullName!, exported.Message);
     }
 
+    [Fact]
+    public void A_span_whose_exception_event_holds_a_token_is_not_exported()
+    {
+        var token = FakeTokens.Create("event-first");
+        var exported = new List<string>();
+        var spans = new List<string>();
+
+        using (BuildTracing(redaction: true, exported, spans, batch: false, "ev-drop"))
+        using (var source = new ActivitySource("ev-drop"))
+        using (var activity = source.StartActivity("call"))
+        {
+            activity!.AddException(new InvalidOperationException("Downstream rejected " + token));
+        }
+
+        Assert.Empty(spans);
+        Assert.DoesNotContain(exported, e => e.Contains(token, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Control_the_same_event_does_reach_an_exporter_when_no_redaction_is_registered()
+    {
+        var token = FakeTokens.Create("event-control");
+        var exported = new List<string>();
+        var spans = new List<string>();
+
+        using (BuildTracing(redaction: false, exported, spans, batch: false, "ev-control"))
+        using (var source = new ActivitySource("ev-control"))
+        using (var activity = source.StartActivity("call"))
+        {
+            activity!.AddException(new InvalidOperationException("Downstream rejected " + token));
+        }
+
+        Assert.Single(spans);
+        Assert.Contains(exported, e => e.Contains(token, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void A_span_with_an_ordinary_exception_event_is_still_exported()
+    {
+        var exported = new List<string>();
+        var spans = new List<string>();
+
+        using (BuildTracing(redaction: true, exported, spans, batch: false, "ev-ordinary"))
+        using (var source = new ActivitySource("ev-ordinary"))
+        using (var activity = source.StartActivity("call"))
+        {
+            activity!.AddException(new InvalidOperationException("Downstream returned 503"));
+        }
+
+        Assert.Single(spans);
+        Assert.Contains(exported, e => e.Contains("Downstream returned 503", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void The_batch_export_processor_drops_the_span_too_because_real_exporters_batch()
+    {
+        var token = FakeTokens.Create("event-batch");
+        var exported = new List<string>();
+        var spans = new List<string>();
+
+        using (var provider = BuildTracing(redaction: true, exported, spans, batch: true, "ev-batch"))
+        {
+            using (var source = new ActivitySource("ev-batch"))
+            using (var activity = source.StartActivity("call"))
+            {
+                activity!.AddException(new InvalidOperationException("Downstream rejected " + token));
+            }
+
+            provider.GetRequiredService<TracerProvider>().ForceFlush();
+        }
+
+        Assert.Empty(spans);
+        Assert.DoesNotContain(exported, e => e.Contains(token, StringComparison.Ordinal));
+    }
+
+    private static ServiceProvider BuildTracing(bool redaction, List<string> exported, List<string> spans, bool batch, string sourceName)
+    {
+        var services = new ServiceCollection();
+        if (redaction)
+        {
+            services.AddTokenRedaction();
+        }
+
+        services.AddOpenTelemetry().WithTracing(t =>
+        {
+            t.AddSource(sourceName);
+            var exporter = new CaptureEventExporter(exported, spans);
+            t.AddProcessor(batch ? new BatchActivityExportProcessor(exporter) : new SimpleActivityExportProcessor(exporter));
+        });
+
+        var provider = services.BuildServiceProvider();
+        _ = provider.GetRequiredService<TracerProvider>();
+        return provider;
+    }
     private static ServiceProvider BuildLogging(bool redactionFirst, List<string> exported)
     {
         var services = new ServiceCollection();
@@ -142,6 +236,26 @@ public sealed class RedactionPipelineTests
         }
     }
 
+    private sealed class CaptureEventExporter(List<string> sink, List<string> spans) : BaseExporter<Activity>
+    {
+        public override ExportResult Export(in Batch<Activity> batch)
+        {
+            foreach (var activity in batch)
+            {
+                spans.Add(activity.DisplayName);
+                foreach (var activityEvent in activity.Events)
+                {
+                    sink.Add(activityEvent.Name);
+                    foreach (var tag in activityEvent.Tags)
+                    {
+                        sink.Add($"{tag.Key}={tag.Value}");
+                    }
+                }
+            }
+
+            return ExportResult.Success;
+        }
+    }
     private sealed class CaptureActivityExporter(List<string> sink) : BaseExporter<Activity>
     {
         public override ExportResult Export(in Batch<Activity> batch)

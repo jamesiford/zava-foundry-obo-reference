@@ -274,15 +274,16 @@ because the popular one stopped being free."
 
 ### B6a. Agent 365 observability: findings and what was built (offline only; nothing run against a live tenant)
 **What was built (option 1: use the hosting library's own exporter).** Export is **off by default**. `--agent365` on the publish tool sets
-`FOUNDRY_AGENT365_TRACING_ENABLED=true` in both hosted agents. `AddAgent365Tracing` fails fast at startup, naming the missing variables
+`FOUNDRY_AGENT365_TRACING_ENABLED=true` in both hosted agents. `ValidateAgent365Tracing` fails fast at startup, naming the missing variables
 (never their values), if that flag is on but `FOUNDRY_HOSTING_ENVIRONMENT`, `FOUNDRY_AGENT_INSTANCE_CLIENT_ID` or `FOUNDRY_AGENT_TENANT_ID`
 is missing. We add our own `invoke_agent` span around each request and an `execute_tool` span around the MCP call (ZavaApi) and the Graph
 retrieval call (SharePoint), in `Agent365Telemetry.cs`. Application Insights export is unchanged and runs alongside. Content capture is off;
 span status carries only the exception type name. The brief's token-resolver interface and `Agent365__*` settings were **not** built: the
 library owns token acquisition, so there is nothing for them to configure.
 **Redaction gaps closed.** The activity redactor now also covers `StatusDescription`; the log redactor replaces an exception whose text holds a
-token with a redacted copy (`RedactedException`). Activity event tags (exception events) still cannot be mutated and stay a known gap; our code
-adds none. Tests prove an exporter registered after the redactors never sees a token (and a control shows one registered before them does),
+token with a redacted copy (`RedactedException`). Span events (an instrumentation's exception event holds the message and stack trace) cannot be edited once added, so the activity
+redactor drops a span from every exporter if any event holds a token, rather than export it (**observed** offline with both the simple and the
+batch export processor; the cost is that one span is lost from Application Insights as well). Tests prove an exporter registered after the redactors never sees a token (and a control shows one registered before them does),
 which closes the redaction-order **[open]** item in B6 for the offline pipeline. The live agent has not been re-checked.
 **Still [open] (needs a live tenant):** who injects the two `FOUNDRY_*` variables at runtime and whether Foundry accepts user-set `FOUNDRY_*`
 names (`--agent365` relies on it); whether the platform's own setting overrides our default-off; the items below marked **[open]**.
@@ -304,7 +305,14 @@ Findings from the decompiled packages. Evidence tags: **[observed]** read in the
 - **[observed]** The exporter runs on a batch thread, never on the request path; it catches token and HTTP failures. It does log exception
   objects, which pass through our log redactor. Agent 365 receives traces only.
 - **[observed]** The distro copies baggage keys, including content keys (`gen_ai.input.messages` and others) and PII keys (`user.email`,
-  `user.name`), onto spans. Never put those in baggage. Our baggage is limited to tenant, agent and conversation ids.
+  `user.name`), onto spans. Never put those in baggage. Our baggage is limited to the tenant id, agent id and agent name.
+- **[open]** Agent 365 treats `gen_ai.conversation.id` as the main key for grouping one run into a conversation, and our spans do not carry it, so
+  they may show as separate runs. The hosted agent cannot supply one: the bot sends no `conversation` or `previous_response_id` on the Responses
+  call (**observed** in the bot code), and the only id the agent has is the per-call response id, which would make every call its own
+  conversation. We did **not** read one from the request, because the design is that no agent accepts a caller-supplied session, conversation
+  or response id (brief rule 8). A sound design, not built: the bot passes its own minted, opaque session id in a dedicated field used for
+  telemetry only, never for state or authorisation. Do not use the Responses `conversation` field for it: it refers to a stored conversation
+  object, and whether an unknown id is accepted is **unverified**.
 - **[documented]** Spans are accepted only if the URL agent id, the token `appid` and each span's `gen_ai.agent.id` match, and the tenant
   matches. A tenant with no assigned M365 E7 or Agent 365 licence returns 200 but drops spans (`tenant_not_licensed`). An agent instance
   registered with Agent 365 needs no `Agent365.Observability.OtelWrite` role; an unregistered identity needs that role plus admin consent.

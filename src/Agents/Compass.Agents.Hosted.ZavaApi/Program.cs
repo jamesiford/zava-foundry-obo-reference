@@ -11,7 +11,7 @@ using Compass.Shared.Observability;
 ResponsesServer.Run<ZavaApiResponseHandler>(args: args, configure: builder =>
 {
     builder.Services.AddTokenRedaction();
-    builder.Services.AddAgent365Tracing(builder.Configuration);
+    builder.Services.ValidateAgent365Tracing(builder.Configuration);
 
     var mcpEndpoint = new Uri(builder.Configuration["ZavaApi:McpEndpoint"] ?? "http://localhost:7071/runtime/webhooks/mcp");
     builder.Services.AddSingleton<IZavaApiMcpClient>(_ => new ZavaApiMcpClient(mcpEndpoint));
