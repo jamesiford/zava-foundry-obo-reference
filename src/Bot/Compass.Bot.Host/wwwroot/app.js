@@ -250,11 +250,17 @@
       .join(' \u00B7 ');
     $('details').append(detail);
 
-    if (event.branch && branchLabels[event.branch]) {
+    if (event.stage === 'writingAnswer') {
+      rowFor('writingAnswer', 'Writing the answer');
+    } else if (event.branch && branchLabels[event.branch]) {
       const row = rowFor(event.branch, branchLabels[event.branch]);
       if (event.outcome && outcomeMarks[event.outcome]) {
         row.firstChild.textContent = outcomeMarks[event.outcome];
         row.lastChild.textContent = branchLabels[event.branch] + ' \u2014 ' + outcomeText[event.outcome];
+        const writing = rows.get('writingAnswer');
+        if (writing && event.branch === 'sharePointRetrieval') {
+          writing.firstChild.textContent = outcomeMarks[event.outcome];
+        }
       }
     } else if (event.stage === 'composing') {
       rowFor('composing', 'Writing your briefing');

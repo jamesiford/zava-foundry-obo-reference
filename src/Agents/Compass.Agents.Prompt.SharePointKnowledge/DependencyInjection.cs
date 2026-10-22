@@ -23,6 +23,8 @@ public static class DependencyInjection
             return new AIProjectClient(endpoint, sp.GetRequiredService<TokenCredential>());
         });
         services.TryAddSingleton<SharePointKnowledgeAgentProvisioner>();
+        services.TryAddSingleton<IAnswerAgent, SharePointAnswerAgent>();
+        services.TryAddSingleton<SharePointAnswerAgentProvisioner>();
         return services;
     }
 }

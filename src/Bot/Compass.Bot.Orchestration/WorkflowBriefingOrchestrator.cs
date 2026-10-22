@@ -16,14 +16,18 @@ namespace Compass.Bot.Orchestration;
 /// So the original exception is captured and rethrown, and the run is abandoned on the first failure: no later branch
 /// output can complete a briefing after another branch has failed (contract rule 5).
 /// </remarks>
-public sealed class WorkflowBriefingOrchestrator(ISender sender, BriefingRoutePolicy route, TimeSpan? progressDrainTimeout = null) : IBriefingOrchestrator
+public sealed class WorkflowBriefingOrchestrator(
+    ISender sender,
+    BriefingRoutePolicy route,
+    TimeSpan? progressDrainTimeout = null,
+    RetrievalSettings? retrieval = null) : IBriefingOrchestrator
 {
     private static readonly TimeSpan DefaultDrainTimeout = TimeSpan.FromSeconds(1);
 
     public async Task<MemberBriefing> RunAsync(BriefingPlan plan, CancellationToken cancellationToken, IBriefingProgressSink? progress = null)
     {
         var workflow = BriefingWorkflowFactory.Create(sender, plan, route);
-        var tracker = new BriefingProgressTracker(route.Route);
+        var tracker = new BriefingProgressTracker(route.Route, retrieval);
         await using var pump = new BriefingProgressPump(progress ?? NullBriefingProgressSink.Instance, progressDrainTimeout ?? DefaultDrainTimeout);
         pump.Enqueue(tracker.Started());
 

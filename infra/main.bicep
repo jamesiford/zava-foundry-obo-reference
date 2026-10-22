@@ -50,9 +50,10 @@ param agentNames array = [
   'ZavaApiAgent'
 ]
 
-@description('Foundry prompt agent names (no container). The knowledge agent is published by `Compass.Bot.Host --publish-knowledge-agent`.')
+@description('Foundry prompt agent names (no container). Index 0 is the knowledge agent (published by `Compass.Bot.Host --publish-knowledge-agent`), index 1 the answer agent that writes the route A answer from the retrieved extracts (published by `Compass.Bot.Host --publish-answer-agent`).')
 param promptAgentNames array = [
   'SharePointKnowledgeAgent'
+  'SharePointAnswerAgent'
 ]
 
 @description('Provision the Azure AI Search service that hosts the Foundry IQ knowledge base (the second SharePoint route).')
@@ -71,6 +72,12 @@ param knowledgeBaseConnectionName string = 'compass-knowledge-base'
   'Both'
 ])
 param sharePointRoute string = 'KnowledgeBase'
+
+@description('Route A (Retrieval) minimum relevanceScore, 0 to 1, as text because Bicep has no decimal type. Retrieved extracts scoring below it are dropped before the answer is written; hits with no score are always kept. 0 keeps everything. The bot validates the value at startup and /health/ready reports a bad one by name. Override with azd env set RETRIEVAL_MIN_RELEVANCE <value>.')
+param retrievalMinRelevance string = '0'
+
+@description('Route A (Retrieval): have the SharePointAnswerAgent write a short cited answer from the retrieved extracts instead of listing them. Override with azd env set RETRIEVAL_SUMMARISE false.')
+param retrievalSummarise bool = true
 
 @description('Serve the web front door (the sign-in page and POST /api/briefing) from the bot host. On by default; turn it off with azd env set FRONT_DOOR_ENABLED false.')
 param frontDoorEnabled bool = true
@@ -256,6 +263,10 @@ module appService 'modules/appService.bicep' = {
       Bot__Foundry__ProjectEndpoint: 'https://${names.foundryAccount}.services.ai.azure.com/api/projects/${names.foundryProject}'
       Bot__Foundry__KnowledgeAgent__AgentName: promptAgentNames[0]
       Bot__Foundry__KnowledgeAgent__ModelDeployment: foundryModelDeploymentName
+      Bot__Foundry__AnswerAgent__AgentName: promptAgentNames[1]
+      Bot__Foundry__AnswerAgent__ModelDeployment: foundryModelDeploymentName
+      Bot__SharePoint__Retrieval__MinRelevance: retrievalMinRelevance
+      Bot__SharePoint__Retrieval__Summarise: string(retrievalSummarise)
       Bot__Foundry__KnowledgeAgent__ProjectConnectionName: knowledgeBaseConnectionName
       Bot__Foundry__KnowledgeAgent__KnowledgeBaseMcpEndpoint: deployKnowledgeBase ? 'https://${names.search}.search.windows.net/knowledgebases/${knowledgeBaseName}/mcp?api-version=2026-08-01-preview' : ''
     }
