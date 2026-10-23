@@ -8,10 +8,11 @@ namespace Compass.Bot.Orchestration;
 /// whether a branch produced nothing — never the payload — so nothing a person may not see can reach a progress sink.
 /// </summary>
 /// <remarks>One instance per run: it holds the run's stopwatch and which branches have already been reported.</remarks>
-internal sealed class BriefingProgressTracker(SharePointRoute route)
+internal sealed class BriefingProgressTracker(SharePointRoute route, RetrievalSettings? retrieval = null)
 {
     private readonly System.Diagnostics.Stopwatch _clock = System.Diagnostics.Stopwatch.StartNew();
     private readonly HashSet<BriefingBranch> _completed = [];
+    private readonly RetrievalSettings _retrieval = retrieval ?? new RetrievalSettings();
     private bool _composing;
     private bool _failed;
 
@@ -22,8 +23,14 @@ internal sealed class BriefingProgressTracker(SharePointRoute route)
     {
         switch (evt)
         {
-            case ExecutorInvokedEvent invoked when BranchOf(invoked.ExecutorId) is { } branch:
+            case ExecutorInvokedEvent invoked when BranchOf(invoked.ExecutorId) is { } branch && invoked.ExecutorId != BriefingExecutorIds.RetrievalAnswer:
                 yield return New(BriefingStage.BranchStarted, branch);
+                break;
+
+            // Only when the model will actually be called: it is skipped when the gate leaves nothing. Reads a count, never the text.
+            case ExecutorInvokedEvent { ExecutorId: BriefingExecutorIds.RetrievalAnswer, Data: BranchResult { Documents: { } raw } }
+                when _retrieval.Summarise && RetrievalRelevanceGate.Apply(raw, _retrieval.MinRelevance).Hits.Count > 0:
+                yield return New(BriefingStage.WritingAnswer, BriefingBranch.SharePointRetrieval);
                 break;
 
             case ExecutorInvokedEvent invoked when invoked.ExecutorId == BriefingExecutorIds.Compose && !_composing:
@@ -31,8 +38,8 @@ internal sealed class BriefingProgressTracker(SharePointRoute route)
                 yield return New(BriefingStage.Composing);
                 break;
 
-            case ExecutorCompletedEvent completed when BranchOf(completed.ExecutorId) is { } branch && _completed.Add(branch):
-                var outcome = completed.Data is BranchResult { Documents.Hits.Count: 0 } ? BranchOutcome.Withheld : BranchOutcome.Succeeded;
+            case ExecutorCompletedEvent completed when completed.ExecutorId != BriefingExecutorIds.Retrieval && BranchOf(completed.ExecutorId) is { } branch && _completed.Add(branch):
+                var outcome = completed.Data is BranchResult result && NothingToShow(result) ? BranchOutcome.Withheld : BranchOutcome.Succeeded;
                 yield return New(BriefingStage.BranchCompleted, branch, outcome);
                 break;
 
@@ -55,9 +62,12 @@ internal sealed class BriefingProgressTracker(SharePointRoute route)
         return New(BriefingStage.Failed, branch, branch is null ? null : BranchOutcome.Failed);
     }
 
+    private static bool NothingToShow(BranchResult result) =>
+        result.Documents is { Hits.Count: 0 } || (result.RetrievalSummary is not null && !KnowledgeAnswers.HasAnswer(result.RetrievalSummary));
+
     private static BriefingBranch? BranchOf(string executorId) => executorId switch
     {
-        BriefingExecutorIds.Retrieval => BriefingBranch.SharePointRetrieval,
+        BriefingExecutorIds.Retrieval or BriefingExecutorIds.RetrievalAnswer => BriefingBranch.SharePointRetrieval,
         BriefingExecutorIds.Knowledge => BriefingBranch.SharePointKnowledge,
         BriefingExecutorIds.ZavaApi => BriefingBranch.ZavaApi,
         _ => null,
@@ -72,6 +82,7 @@ internal static class BriefingExecutorIds
 {
     public const string Start = "briefing-start";
     public const string Retrieval = "sharepoint-retrieval";
+    public const string RetrievalAnswer = "sharepoint-retrieval-answer";
     public const string Knowledge = "sharepoint-knowledge";
     public const string ZavaApi = "zava-api";
     public const string Compose = "briefing-compose";

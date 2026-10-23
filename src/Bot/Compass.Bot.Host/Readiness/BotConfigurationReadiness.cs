@@ -1,3 +1,4 @@
+using Compass.Bot.Application.Models;
 using Microsoft.Extensions.Configuration;
 
 namespace Compass.Bot.Host.Readiness;
@@ -63,6 +64,23 @@ public static class BotConfigurationReadiness
         if (SharePointRouteSetting.TryRead(configuration) is null)
         {
             missing.Add(SharePointRouteSetting.InvalidLabel);
+        }
+
+        // Same for the route A relevance cut and summary switch: a typo must not quietly disable the cut or the summary.
+        if (!RetrievalSettingsReader.TryReadMinRelevance(configuration, out _))
+        {
+            missing.Add(RetrievalSettingsReader.InvalidMinRelevanceLabel);
+        }
+
+        if (!RetrievalSettingsReader.TryReadSummarise(configuration, out var summarise))
+        {
+            missing.Add(RetrievalSettingsReader.InvalidSummariseLabel);
+        }
+        else if (summarise && SharePointRouteSetting.TryRead(configuration) is SharePointRoute.Retrieval or SharePointRoute.Both
+            && IsMissing(configuration["Bot:Foundry:AnswerAgent:AgentName"]))
+        {
+            // The agent name has a code default, so this only trips when it was set to blank/placeholder on purpose.
+            missing.Add("Bot:Foundry:AnswerAgent:AgentName");
         }
 
         return missing;

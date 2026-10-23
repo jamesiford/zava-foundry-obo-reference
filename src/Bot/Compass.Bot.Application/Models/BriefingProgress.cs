@@ -9,6 +9,9 @@ public enum BriefingStage
     Composing,
     Completed,
     Failed,
+
+    /// <summary>The Graph retrieval extracts passed the relevance gate and the answer agent is writing the answer from them.</summary>
+    WritingAnswer,
 }
 
 /// <summary>The three parallel branches of the briefing workflow.</summary>

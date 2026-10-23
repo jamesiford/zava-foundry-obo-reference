@@ -16,6 +16,8 @@ internal sealed class BriefingComposeExecutor(PersonContext person, BriefingScop
 {
     private RetrievalResult? _documents;
     private KnowledgeQueryResult? _knowledge;
+    private KnowledgeQueryResult? _retrievalSummary;
+    private bool _summaryUnavailable;
     private MemberBriefingResult? _accounts;
 
     /// <summary>The workflow rejects outputs whose type wasn't declared up front, so the briefing is declared here.</summary>
@@ -24,7 +26,13 @@ internal sealed class BriefingComposeExecutor(PersonContext person, BriefingScop
 
     public override async ValueTask HandleAsync(BranchResult message, IWorkflowContext context, CancellationToken cancellationToken = default)
     {
-        _documents ??= message.Documents;
+        if (_documents is null && message.Documents is not null)
+        {
+            _documents = message.Documents;
+            _retrievalSummary = message.RetrievalSummary;
+            _summaryUnavailable = message.SummaryUnavailable;
+        }
+
         _knowledge ??= message.Knowledge;
         _accounts ??= message.Accounts;
 
@@ -35,11 +43,13 @@ internal sealed class BriefingComposeExecutor(PersonContext person, BriefingScop
 
         var briefing = new MemberBriefing(
             person,
-            BriefingComposer.Compose(_accounts, _documents, _knowledge, route),
+            BriefingComposer.Compose(_accounts, _documents, _knowledge, route, _retrievalSummary, _summaryUnavailable),
             _accounts,
             _documents,
             _knowledge,
-            route);
+            route,
+            _retrievalSummary,
+            _summaryUnavailable);
         await context.YieldOutputAsync(briefing, cancellationToken);
     }
 }

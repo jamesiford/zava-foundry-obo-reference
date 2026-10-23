@@ -11,9 +11,14 @@ public static class BriefingCitations
     public static IReadOnlyList<ReplyCitation> From(MemberBriefing briefing)
     {
         var citations = new List<ReplyCitation>();
-        foreach (var hit in briefing.Documents?.Hits ?? [])
+        // When the retrieval hits were summarised, cite only what the answer cited (and nothing if it said "I don't know"):
+        // listing every extract would show documents the answer does not rest on.
+        var retrievalSources = briefing.RetrievalSummary is { } summary
+            ? KnowledgeAnswers.HasAnswer(summary) ? summary.Sources.Select(s => (s.Title, s.Url)) : []
+            : (briefing.Documents?.Hits ?? []).Select(hit => (hit.Title ?? hit.SiteUrl, (string?)hit.SiteUrl));
+        foreach (var (title, url) in retrievalSources)
         {
-            citations.Add(new ReplyCitation(hit.Title ?? hit.SiteUrl, AsWebLink(hit.SiteUrl)));
+            citations.Add(new ReplyCitation(title, url is null ? null : AsWebLink(url)));
         }
 
         foreach (var source in briefing.Knowledge?.Sources ?? [])

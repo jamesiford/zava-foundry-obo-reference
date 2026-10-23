@@ -18,11 +18,20 @@ namespace Compass.Bot.Application.Models;
 /// </remarks>
 public static class BriefingComposer
 {
+    /// <summary>Shown above the extracts when the answer agent was needed but unavailable.</summary>
+    public const string SummaryUnavailableNote = "Summary unavailable; showing source passages.";
+
+    /// <param name="retrievalSummary">
+    /// The answer agent's reply for the Graph retrieval extracts, or <see langword="null"/> when they are shown as they are.
+    /// </param>
+    /// <param name="summaryUnavailable">The answer agent failed, so <paramref name="documents"/> are shown with a note.</param>
     public static string Compose(
         MemberBriefingResult? accounts,
         RetrievalResult? documents,
         KnowledgeQueryResult? knowledge,
-        SharePointRoute route)
+        SharePointRoute route,
+        KnowledgeQueryResult? retrievalSummary = null,
+        bool summaryUnavailable = false)
     {
         var culture = CultureInfo.InvariantCulture;
         var text = new StringBuilder();
@@ -49,14 +58,37 @@ public static class BriefingComposer
             var sections = new StringBuilder();
             if (documents is { Hits.Count: > 0 })
             {
-                sections.AppendLine("From SharePoint:");
-                foreach (var hit in documents.Hits)
+                if (retrievalSummary is not null)
                 {
-                    sections.AppendLine(culture, $"- {hit.Title ?? hit.SiteUrl}: {hit.Text} ({hit.SiteUrl})");
+                    // The extracts are summarised: show the answer and what it cites, not the raw passages. A summary
+                    // that says "I don't know" means the extracts that passed the gate don't answer it, so nothing is shown.
+                    if (KnowledgeAnswers.HasAnswer(retrievalSummary))
+                    {
+                        // Under route Both the knowledge-base section follows, so name this one's route.
+                        sections.AppendLine(knowledge is null ? "From SharePoint:" : "From SharePoint (Graph retrieval):");
+                        sections.AppendLine(retrievalSummary.Answer);
+                        if (retrievalSummary.Sources.Count > 0)
+                        {
+                            sections.AppendLine(culture, $"Sources: {string.Join(", ", retrievalSummary.Sources.Select(s => s.Title))}");
+                        }
+                    }
+                }
+                else
+                {
+                    sections.AppendLine("From SharePoint:");
+                    if (summaryUnavailable)
+                    {
+                        sections.AppendLine(SummaryUnavailableNote);
+                    }
+
+                    foreach (var hit in documents.Hits)
+                    {
+                        sections.AppendLine(culture, $"- {hit.Title ?? hit.SiteUrl}: {hit.Text} ({hit.SiteUrl})");
+                    }
                 }
             }
 
-            if (knowledge is not null && HasAnswer(knowledge))
+            if (knowledge is not null && KnowledgeAnswers.HasAnswer(knowledge))
             {
                 if (sections.Length > 0)
                 {
@@ -78,14 +110,5 @@ public static class BriefingComposer
         }
 
         return text.ToString().TrimEnd();
-    }
-    /// <summary>The knowledge agent is told to answer exactly "I don't know" when nothing relevant is visible to the person.</summary>
-    private static bool HasAnswer(KnowledgeQueryResult knowledge)
-    {
-        var answer = knowledge.Answer?.Trim().TrimEnd('.', '!') ?? string.Empty;
-        return answer.Length > 0
-            && !answer.Equals("I don't know", StringComparison.OrdinalIgnoreCase)
-            && !answer.Equals("I don’t know", StringComparison.OrdinalIgnoreCase)
-            && !answer.Equals("I do not know", StringComparison.OrdinalIgnoreCase);
     }
 }

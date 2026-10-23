@@ -96,6 +96,9 @@ internal sealed class RecordingGateway : IHostedAgentGateway
     /// <summary>Awaited before each call answers; lets a test hold a branch open (slow or hanging agent).</summary>
     public Func<HostedAgentCall, CancellationToken, Task>? Before { get; init; }
 
+    /// <summary>The hits the retrieval agent returns; the default is one hit for Daniel.</summary>
+    public IReadOnlyList<RetrievalHit>? RetrievalHits { get; init; }
+
     public IReadOnlyCollection<HostedAgentCall> Calls => _calls;
 
     public async Task<TResponse> InvokeAsync<TRequest, TResponse>(HostedAgentCall call, TRequest request, CancellationToken cancellationToken)
@@ -120,9 +123,26 @@ internal sealed class RecordingGateway : IHostedAgentGateway
                 [new AccountBriefing("1001", "Checking", "Everyday", 1250.50m, "USD")],
                 1250.50m),
             HostedAgentName.SharePointKnowledge => new KnowledgeQueryResult("Daniel's knowledge answer", ["Handbook.docx"]),
-            _ => new RetrievalResult([new RetrievalHit("https://contoso.sharepoint.com/sites/usera", "Loan note", "Daniel's loan note", 0.9)]),
+            _ => new RetrievalResult(RetrievalHits ?? [new RetrievalHit("https://contoso.sharepoint.com/sites/usera", "Loan note", "Daniel's loan note", 0.9)]),
         };
         return (TResponse)result;
+    }
+}
+
+/// <summary>Records every question and extract list the answer step is given, and answers or fails as scripted.</summary>
+internal sealed class RecordingAnswerer : IAnswerFromExtracts
+{
+    private readonly ConcurrentQueue<(string Question, IReadOnlyList<RetrievalHit> Extracts)> _calls = new();
+
+    public Func<string, IReadOnlyList<RetrievalHit>, CancellationToken, Task<KnowledgeQueryResult>> Respond { get; init; } =
+        (_, _, _) => Task.FromResult(new KnowledgeQueryResult("Stub answer.", []));
+
+    public IReadOnlyCollection<(string Question, IReadOnlyList<RetrievalHit> Extracts)> Calls => _calls;
+
+    public Task<KnowledgeQueryResult> AnswerAsync(string question, IReadOnlyList<RetrievalHit> extracts, CancellationToken cancellationToken)
+    {
+        _calls.Enqueue((question, extracts));
+        return Respond(question, extracts, cancellationToken);
     }
 }
 
@@ -195,7 +215,9 @@ internal sealed class BotTestHost
         string memberNumber = "ZCU-100234",
         IHostedAgentGateway? gatewayOverride = null,
         SharePointRoute route = SharePointRoute.Both,
-        IMemberNumberResolver? members = null)
+        IMemberNumberResolver? members = null,
+        RetrievalSettings? retrieval = null,
+        IAnswerFromExtracts? answerer = null)
     {
         Person = person ?? new CountingPersonResolver(TestPeople.UserA);
         Broker = broker ?? new RecordingBroker();
@@ -204,8 +226,12 @@ internal sealed class BotTestHost
 
         var services = new ServiceCollection();
         services.AddLogging(b => b.SetMinimumLevel(LogLevel.Trace).AddProvider(Logs));
-        services.AddCompassBotApplication(route);
+        services.AddCompassBotApplication(route, retrieval);
         services.AddCompassBotOrchestration();
+        if (answerer is not null)
+        {
+            services.AddSingleton(answerer);
+        }
         services.AddSingleton<IPersonContextResolver>(Person);
         services.AddSingleton(members ?? new FixedMemberResolver(memberNumber));
         services.AddSingleton<IObOTokenBroker>(Broker);

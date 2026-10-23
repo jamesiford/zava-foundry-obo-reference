@@ -26,6 +26,7 @@ public static class DependencyInjection
         services.AddOptions<FoundryOptions>().Bind(configuration.GetSection(FoundryOptions.SectionName));
         services.AddOptions<FoundryProjectOptions>().Bind(configuration.GetSection(FoundryProjectOptions.SectionName));
         services.AddOptions<KnowledgeAgentOptions>().Bind(configuration.GetSection(KnowledgeAgentOptions.SectionName));
+        services.AddOptions<AnswerAgentOptions>().Bind(configuration.GetSection(AnswerAgentOptions.SectionName));
         services.AddOptions<MemberDirectoryOptions>().Bind(configuration.GetSection(MemberDirectoryOptions.SectionName));
 
         // The Teams SSO token is validated with the same audience/issuer validator the MCP server uses; only the
@@ -40,6 +41,7 @@ public static class DependencyInjection
         services.TryAddSingleton<TokenCredential>(_ => new DefaultAzureCredential());
 
         services.AddSharePointKnowledgeAgent();
+        services.AddSingleton<IAnswerFromExtracts, FoundryExtractAnswerer>();
         services.AddSingleton<IHostedAgentGateway, FoundryHostedAgentGateway>();
 
         return services;

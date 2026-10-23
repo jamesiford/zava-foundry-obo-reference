@@ -23,6 +23,12 @@
     "sharePointRoute": {
       "value": "${SHAREPOINT_ROUTE=KnowledgeBase}"
     },
+    "retrievalMinRelevance": {
+      "value": "${RETRIEVAL_MIN_RELEVANCE=0}"
+    },
+    "retrievalSummarise": {
+      "value": "${RETRIEVAL_SUMMARISE=true}"
+    },
     "frontDoorEnabled": {
       "value": "${FRONT_DOOR_ENABLED=true}"
     },

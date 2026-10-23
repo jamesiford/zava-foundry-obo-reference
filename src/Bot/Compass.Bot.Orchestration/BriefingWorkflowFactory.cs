@@ -21,28 +21,45 @@ internal static class BriefingWorkflowFactory
         var compose = new BriefingComposeExecutor(plan.Person, plan.Scope, route.Route);
 
         var branches = new List<ExecutorBinding>();
+        var results = new List<ExecutorBinding>();
+        var edges = new List<(ExecutorBinding From, ExecutorBinding To)>();
         if (plan.Scope.Retrieval)
         {
-            branches.Add(new SharePointRetrievalExecutor(sender));
+            // Retrieval is two steps (fetch, then gate and write the answer); the second is what the compose node waits for.
+            ExecutorBinding fetch = new SharePointRetrievalExecutor(sender);
+            ExecutorBinding answer = new RetrievalAnswerExecutor(sender, plan.Question);
+            branches.Add(fetch);
+            results.Add(answer);
+            edges.Add((fetch, answer));
         }
 
         if (plan.Scope.Knowledge)
         {
-            branches.Add(new SharePointKnowledgeExecutor(sender));
+            ExecutorBinding knowledge = new SharePointKnowledgeExecutor(sender);
+            branches.Add(knowledge);
+            results.Add(knowledge);
         }
 
         if (plan.Scope.Accounts)
         {
-            branches.Add(new ZavaApiExecutor(sender));
+            ExecutorBinding accounts = new ZavaApiExecutor(sender);
+            branches.Add(accounts);
+            results.Add(accounts);
         }
 
-        return new WorkflowBuilder(start)
+        var builder = new WorkflowBuilder(start)
             .WithName("compass-member-briefing")
             // Opt-in: without this the workflow emits no spans. Content (executor input and output, message bodies) is recorded
             // only when EnableSensitiveData is set, and it is not, because the messages carry member data.
             .WithOpenTelemetry()
-            .AddFanOutEdge(start, branches)
-            .AddFanInBarrierEdge(branches, compose)
+            .AddFanOutEdge(start, branches);
+        foreach (var (from, to) in edges)
+        {
+            builder = builder.AddEdge(from, to);
+        }
+
+        return builder
+            .AddFanInBarrierEdge(results, compose)
             .WithOutputFrom(compose)
             .Build();
     }

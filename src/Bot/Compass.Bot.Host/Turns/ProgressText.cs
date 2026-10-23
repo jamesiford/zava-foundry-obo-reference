@@ -17,6 +17,7 @@ public static class ProgressText
             $"Reading SharePoint as {Clean(displayName)}…",
         (BriefingStage.BranchStarted, BriefingBranch.ZavaApi) => "Checking your member record…",
         (BriefingStage.Composing, _) => "Composing…",
+        (BriefingStage.WritingAnswer, _) => "Writing the answer…",
         _ => null,
     };
 

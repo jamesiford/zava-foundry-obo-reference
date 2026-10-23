@@ -33,9 +33,7 @@ builder.Services.AddOpenTelemetry()
     .ConfigureResource(resource => resource.AddService(serviceName: "compass-bot"))
     .WithTracing(tracing => tracing.AddSource("Microsoft.Agents.AI.Workflows"));
 
-builder.Services.AddCompassBotApplication(SharePointRouteSetting.Read(builder.Configuration));
-builder.Services.AddCompassBotOrchestration();
-builder.Services.AddCompassBotInfrastructure(builder.Configuration);
+builder.Services.AddCompassBot(builder.Configuration);
 builder.Services.AddScoped<BriefingTurnHandler>();
 builder.Services.AddScoped<TeamsTurnResponder>();
 builder.Services.AddSingleton(new StreamingOptions());
@@ -51,11 +49,18 @@ builder.AddAgentAuthorization(b => b.AddBotChannelAuthentication());
 
 var app = builder.Build();
 
-// One-off operator command (infra/README.md): publishes the knowledge prompt agent as a new Foundry agent version using
-// the operator's own identity (DefaultAzureCredential), then exits without starting the bot.
+// One-off operator commands (infra/README.md): publish a prompt agent as a new Foundry agent version using the operator's
+// own identity (DefaultAzureCredential), then exit without starting the bot.
 if (args.Contains("--publish-knowledge-agent"))
 {
     var published = await app.Services.GetRequiredService<SharePointKnowledgeAgentProvisioner>().PublishAsync(CancellationToken.None);
+    Console.WriteLine($"Published {published.Name} version {published.Version}.");
+    return;
+}
+
+if (args.Contains("--publish-answer-agent"))
+{
+    var published = await app.Services.GetRequiredService<SharePointAnswerAgentProvisioner>().PublishAsync(CancellationToken.None);
     Console.WriteLine($"Published {published.Name} version {published.Version}.");
     return;
 }

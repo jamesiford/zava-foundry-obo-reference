@@ -63,7 +63,7 @@ The person running the deployment needs all of the following, or someone who has
 | 6 | Publish the two hosted agents | `tools/Compass.Tools.PublishAgents` (a command, not an azd hook) | Foundry Project Manager |
 | 7 | Tell the bot which agent versions to call | `azd env set` plus `azd provision`, or `az webapp config appsettings set` | Yes |
 | 8 | Knowledge base, knowledge source, project connections | `Setup-KnowledgeBase.ps1` (data-plane REST) | Yes |
-| 9 | Publish the prompt agent | `dotnet run --project src/Bot/Compass.Bot.Host -- --publish-knowledge-agent` | Yes |
+| 9 | Publish the prompt agents | `dotnet run --project src/Bot/Compass.Bot.Host -- --publish-knowledge-agent`; also `-- --publish-answer-agent` for the route A summary | Yes |
 | 10 | SharePoint site | A short script (step 7) or the SharePoint admin center | Yes |
 | 11 | Seed the libraries and their permissions | `Seed-SharePointTestData.ps1` (needs PnP.PowerShell and an Entra app for its sign-in, step 7) | Yes, then check in the browser |
 | 12 | Map each person to a member number | `Set-MemberMapping.ps1` | Yes |
@@ -167,6 +167,24 @@ $env:AZURE_TOKEN_CREDENTIALS = 'AzureCliCredential'     # use the signed-in az a
 dotnet run --project src/Bot/Compass.Bot.Host -- --publish-knowledge-agent
 ```
 
+**Route A answer agent (only if you use `SHAREPOINT_ROUTE=Retrieval` or `Both` with the summary on).** Publish the second prompt agent the same way. It has no tools and needs no knowledge base, only the project endpoint and the model deployment:
+
+```powershell
+$env:Bot__Foundry__AnswerAgent__ModelDeployment = '<model-deployment-name>'
+dotnet run --project src/Bot/Compass.Bot.Host -- --publish-answer-agent
+```
+
+Bicep (`azd provision`) sets `Bot__Foundry__AnswerAgent__AgentName` and `__ModelDeployment` on the bot. For a quick test without `azd provision`, set them on the web app with `az webapp config appsettings set`, together with the route and the two retrieval settings. The route, the gate and the summary are controlled by these settings (each is checked by name in `/health/ready`, never by value):
+
+| Setting (azd variable) | Default | Meaning |
+| --- | --- | --- |
+| `Bot__SharePoint__Route` (`SHAREPOINT_ROUTE`) | `KnowledgeBase` | `Retrieval` selects route A |
+| `Bot__SharePoint__Retrieval__Summarise` (`RETRIEVAL_SUMMARISE`) | `true` | Route A writes a short cited answer from the extracts; `false` lists the extracts as before |
+| `Bot__SharePoint__Retrieval__MinRelevance` (`RETRIEVAL_MIN_RELEVANCE`) | `0` | Drops hits scoring below this (0 to 1). `0` cuts nothing. **[observed]** the 22 Oct scores did not separate relevant from not-relevant, so leave it at `0` until you have measured your own documents (decisions A6a) |
+| `Bot__Foundry__AnswerAgent__AgentName`, `__AgentVersion`, `__ModelDeployment` | `SharePointAnswerAgent`, latest, project model | Which answer agent version the bot calls |
+
+**Privacy, open.** **[observed, 22 Oct]** Foundry platform tracing records the answer agent's input and output text (the extracts, the question and the answer) in the Application Insights resource connected to the project (`gen_ai.input.messages`, `gen_ai.output.messages`). **[documented]** Learn describes tracing as collecting prompts, responses and tool calls for all agents in a connected project; the controls it names are disconnecting Application Insights, limiting who holds **Log Analytics Reader** (and **Privileged Monitoring Data Reader** where the tables are protected), retention policies and redaction. We found no per-agent switch for content recording and changed nothing. Decide this before using real documents.
+
 ### Step 7: demo data (exercised)
 
 1. **Create a SharePoint site you own.** Either create a team site in the SharePoint admin center, or create a Microsoft 365 group (its site is created for you, usually within a minute). The group form, run as the person who will own the site:
@@ -261,4 +279,5 @@ Use `Invoke-RestMethod` rather than `az rest` with a `$filter`: the `az` `.cmd` 
 - A real claims step-up demand from Conditional Access.
 - Step 9, the Teams upload by an administrator (documented from the Teams admin center, not run in the clean-clone test).
 - Per-agent Foundry application scope and per-agent RBAC (blocked by a preview API issue).
+- The route A answer agent (`--publish-answer-agent`) was exercised in dev on 22 Oct 2026 (12 questions). **Not checked:** a per-agent role scope for it, a way to switch off Foundry content recording for it (it is recorded in Application Insights; see step 6), and any tenant other than dev.
 - Agent 365 export (`--agent365`). Exercised in dev on 22 Oct 2026 as far as Application Insights shows: our spans appeared, posts returned 200, no `eyJ` text. **Not checked:** that the runs appear in Agent 365, whether setting the variable to `false` stops the export, and whether the idle `observabilityService` stream then stops.

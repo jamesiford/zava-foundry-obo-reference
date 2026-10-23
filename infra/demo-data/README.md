@@ -68,6 +68,25 @@ document (the correct outcome is the briefing saying "No document you have acces
 Question 11 is the control: if it fails for either person the problem is indexing, licensing or configuration, not
 isolation. Run it first.
 
+### Relevance on route A (`Bot__SharePoint__Route=Retrieval`) — measured 22 Oct, dev
+
+**[observed]** The Retrieval API returns its best matches even for a question the person's documents do not answer. Before the summary
+step, Daniel asking question 6 got extracts from two documents he can read and neither was relevant (nothing from Maya's library appeared).
+With the summary on, each of the 12 questions below was handled correctly: the "Must not" and off-topic cases read "No document you have
+access to answers this question.", and the "Gets it" cases got a short cited answer. The tester read each answer on screen and saw no text from the other person's documents (one run, one tester; the shared wire question was asked twice).
+
+| Ask as | Question (number above) | Expected | Top score **[observed]** |
+|---|---|---|---|
+| Daniel | 11 wire cutoff; 1 DTI ratio; 4 Credit Officer limit | answered | relevant questions overall 0.671 to 0.812 (the shared wire cutoff was the lowest, 0.671) |
+| Daniel | 6 hardship call; 9 watchlist | "No document ..." | not-relevant questions overall 0.582 to 0.703 |
+| Daniel | "What is the capital of France?" | "No document ..." | (as above) |
+| Maya | 11 wire cutoff; 6 hardship call; 9 watchlist | answered | (as relevant above) |
+| Maya | 1 DTI ratio; 4 Credit Officer limit | "No document ..." | (as not-relevant above) |
+| Maya | "What is the capital of France?" | "No document ..." | (as above) |
+
+The score ranges overlap, so `Bot__SharePoint__Retrieval__MinRelevance` stays at `0` (off). A score cut-off of 0.70 would drop the relevant
+wire cutoff question and keep a not-relevant one at 0.703. Re-measure on your own documents before turning it on (decisions A6a).
+
 ## Member-account demo (MCP, not SharePoint)
 
 The seeded Zava API (`ZavaApiAgent` -> MCP) maps the two people to member records by Entra object id (no ids live in source;
