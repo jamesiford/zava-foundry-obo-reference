@@ -33,9 +33,7 @@ builder.Services.AddOpenTelemetry()
     .ConfigureResource(resource => resource.AddService(serviceName: "compass-bot"))
     .WithTracing(tracing => tracing.AddSource("Microsoft.Agents.AI.Workflows"));
 
-builder.Services.AddCompassBotApplication(SharePointRouteSetting.Read(builder.Configuration), RetrievalSettingsReader.Read(builder.Configuration));
-builder.Services.AddCompassBotOrchestration();
-builder.Services.AddCompassBotInfrastructure(builder.Configuration);
+builder.Services.AddCompassBot(builder.Configuration);
 builder.Services.AddScoped<BriefingTurnHandler>();
 builder.Services.AddScoped<TeamsTurnResponder>();
 builder.Services.AddSingleton(new StreamingOptions());

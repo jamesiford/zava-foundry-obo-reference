@@ -159,7 +159,8 @@ It reads Daniel's Graph token from `x-client-graph-access-token` and calls
 `POST https://graph.microsoft.com/v1.0/copilot/retrieval` with it — **directly, as Daniel**. SharePoint, via
 Microsoft 365's own index, decides what comes back. The agent does **no filtering of its own**. If the retrieval
 API returns Lending Policy for Daniel and nothing for Maya, that is SharePoint's permission model working exactly
-as designed — not a line of Compass code deciding anything.
+as designed — not a line of Compass code deciding anything. (Afterwards the bot can drop weak matches and write a short
+answer from the extracts; see [`DECISIONS-AND-LESSONS.md`](DECISIONS-AND-LESSONS.md) A6a. That is about relevance, never visibility.)
 
 #### Branch B — `SharePointKnowledgeAgent` (prompt agent → Foundry IQ knowledge base → Azure AI Search → SharePoint)
 
@@ -361,7 +362,7 @@ This isn't a claim — every row below is backed by a real, currently-passing te
 | The person is resolved **once** per turn, never re-derived from a prompt or tool argument | `PersonContext` built once in `GetMemberBriefingQueryHandler`, passed to every branch | `Compass.Bot.Application.Tests` |
 | **One** OBO exchange per downstream audience per turn — not one per agent, even with three agent branches | `AcquireDownstreamTokenCommand` called once for Graph, Search, and Zava API each; tokens handed to the workflow, not re-acquired per node | `Compass.Bot.Application.Tests`, `BriefingWorkflowTests` |
 | Only the bot may assert a person to Foundry | `x-ms-user-identity` is set in exactly one class (`FoundryHostedAgentGateway`), gated by the custom impersonation role | Architecture review + RBAC |
-| The store decides — no post-retrieval pruning, anywhere | Both SharePoint agents return results unfiltered; the MCP agent forwards the token unchanged | Code review + `TokenLeakTests` |
+| The store decides — no post-retrieval pruning, anywhere | Both SharePoint agents return results unfiltered; the MCP agent forwards the token unchanged. The rule protects **visibility** (no code decides what a person may see), not relevance: the bot may drop low-scoring or unhelpful hits afterwards, never add one | Code review + `TokenLeakTests`; `RetrievalRelevanceGateTests` |
 | Fail closed — missing/expired token never falls back to app-only | Every agent throws a typed exception before any downstream call if its token is missing | Per-agent fail-closed tests (all three agents) |
 | A claims challenge survives the whole chain, intact | `TokenAcquisitionException` carries MSAL's `Claims` string through the orchestrator unchanged | `BriefingWorkflowTests` (claims-challenge case) |
 | Two people, both call orders, identical per-person results | The isolation suite runs User A then B and B then A against both SharePoint routes and the MCP route | `Compass.IdentityIsolation.Tests` (cases 1–2) |

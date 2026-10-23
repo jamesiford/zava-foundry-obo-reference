@@ -122,6 +122,62 @@ in who writes the plumbing."
   `knowledgebases/{kb}/retrieve` with the service identity in `Authorization` and the person's Search token in
   `x-ms-query-source-authorization`.
 
+### A6a. Route A listed unrelated documents: a relevance gate, and a short answer instead of pasted extracts
+
+**The negative case. [observed, 22 Oct]** On route A, Daniel asked Maya's question ("When must we make a hardship call on a delinquent
+account?"). The briefing did not say "No document you have access to answers this question." It listed extracts from two documents
+Daniel can read (Consumer Lending Policy, Member Services FAQ), neither relevant. Nothing from Maya's library appeared, so identity
+isolation held. This was a relevance problem, not a leak. The cause is in our code: the composer printed every hit and showed the
+no-document line only when there were zero hits, on the assumption that "empty means nothing relevant". **[documented]** The Retrieval API
+is optimised for recall, and **[observed]** it returned weak matches rather than an empty list for off-topic questions.
+
+**What Learn says about `relevanceScore`. [documented]** A cosine similarity normalised to 0 to 1, which can be missing; no threshold
+guidance (its examples sit around 0.75 to 0.84); hits are described as unordered. `maximumNumberOfResults` (1 to 25) caps the count only,
+and Learn advises against limiting it. `filterExpression` scopes the query (site, file type, date) and cannot cut weak matches.
+
+**What we measured. [observed, 22 Oct, dev, route A, 12 questions as Daniel and Maya]** Per-question top score for relevant questions:
+**0.671 to 0.812**. For not-relevant questions (the other person's policy question, "What is the capital of France?"): **0.582 to
+0.703**. The ranges overlap. A 0.70 cut-off would drop the relevant shared wire-cutoff question (0.671) and still keep a not-relevant
+one (0.703). **The scores do not separate the two groups, so we did not pick a threshold.** (One question was asked twice; a sample this
+small is a spike, not a calibration.)
+
+**What we built.**
+1. **A relevance gate, off by default. [decision]** `RetrievalRelevanceGate` (bot application layer; one pure, unit-tested function)
+   drops hits whose score is below `Bot:SharePoint:Retrieval:MinRelevance` (0 to 1, default **0**, which cuts nothing). Hits with no score
+   are **kept**, so content is never hidden silently. The order the API returned is never changed. The setting is validated by name in
+   `/health/ready` (never the value). Turn it on only after measuring your own documents.
+2. **A summarisation step that makes the model the relevance judge. [observed]** A prompt agent, `SharePointAnswerAgent` (no tools),
+   receives only this turn's gated extracts, numbered, plus the question, and answers from them only. If they do not answer it, it replies
+   exactly "I don't know" and the bot shows the no-document line. **On the 12 questions it was right every time: 6 answered, 6 "no
+   answer".** If the model is unavailable, the bot falls back to the extracts with the note "Summary unavailable; showing source
+   passages." (fail soft on availability, fail closed on content). `Bot:SharePoint:Retrieval:Summarise=false` restores the old list.
+3. **Route B is unchanged. Route Both:** the retrieval branch is gated and summarised under its own heading and the knowledge-base answer is
+   shown as before. **[open]** The two can repeat the same fact; we did not de-duplicate.
+
+**Latency. [observed, 22 Oct, small samples, different conditions from the 18 Oct figures, so not a benchmark]** Retrieval median about
+**3.9 s**; summary median about **1.3 s** (range 0.9 to 2.5 s); about **5.2 s** in total. For reference the 18 Oct route A figure was about
+3.6 s and route B about 10.5 s (A6). Route A with a summary is still roughly half of route B in these samples.
+
+**Contract rule 4, reworded.** The hosted retrieval agent's rule 4 ("the store decides") stays literally true and the hosted agent is
+unchanged. What it protects is **visibility**: the agent, and Compass code after it, must never decide *what a person is allowed to see*, so
+nothing is pruned, re-ranked or second-guessed on permission grounds. It was never a promise about **relevance**. SharePoint decides what
+the person may read; the bot's application layer may then decide what is worth showing or summarising. The gate and the summariser only ever
+**remove or condense** what the store already allowed; they cannot add a document, and they receive no token, person id or history.
+
+**Injection and the content filter. [observed, 22 Oct, answer agent called directly with synthetic extracts]** A relevant question gives a
+cited answer. An irrelevant or off-topic question gives exactly "I don't know". An instruction inside a relevant extract is ignored. An
+injection inside an extract paired with an irrelevant question was **blocked by the Azure OpenAI content filter**; the bot then takes the
+fallback path and shows the extracts. **[open]** That fallback shows the raw passages, which is the behaviour the summary was meant to avoid;
+the person still sees only what they can read.
+
+**Privacy. [observed, 22 Oct] [open]** Foundry platform tracing records the answer agent's input and output text in Application Insights
+(`gen_ai.input.messages` and `gen_ai.output.messages` on the `invoke_agent` and `chat` spans), so the extracts, the question and the answer
+land there. **[documented]** Learn says tracing is off until a project is
+connected to Application Insights, then collects for all agents in the project; the documented ways to limit it are to disconnect
+Application Insights, restrict who holds Log Analytics Reader (and Privileged Monitoring Data Reader where the tables are protected), apply
+retention policies, and redact personal data. We found no per-agent switch for content recording, so we changed nothing.
+Treat the connected Application Insights as holding document text.
+
 ### A7. Why MCP on Azure Functions for our own data, and why do we validate the audience ourselves?
 
 **Say:** "Our member API is ours, so we issue it its own audience, and the server checks that the token was meant for it."
@@ -403,3 +459,5 @@ scoping and Entra Agent ID.
 4. ~~Is route B slower than route A?~~ **[observed, 18 Oct]** About three times slower in a small single-session sample (A6); the cause is not isolated.
 5. Move to the built-in impersonation role (A4). **[open]**
 6. Can a Foundry-published agent get a person's delegated token through Entra Agent ID (A2)? **[open]**, research only.
+7. Does the relevance gate ever help? The 22 Oct scores overlap between relevant and not-relevant questions (A6a), so it ships off (`MinRelevance=0`). **[open]** Re-measure on real documents before turning it on.
+8. Can Foundry content recording (extracts, questions, answers in Application Insights) be limited per agent? We found no such setting (A6a). **[open]**
