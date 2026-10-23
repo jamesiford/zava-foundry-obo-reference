@@ -141,6 +141,10 @@ and Learn advises against limiting it. `filterExpression` scopes the query (site
 one (0.703). **The scores do not separate the two groups, so we did not pick a threshold.** (One question was asked twice; a sample this
 small is a spike, not a calibration. Log lines were matched to questions by order; the repeated identical scores for the shared wire question and for the off-topic question agree. The tester read each answer on screen and confirmed it.)
 
+**Teams. [observed, 22 Oct, dev, route A with the summary]** The tester confirmed a one-to-one Teams chat works. The log agrees: after the new bot
+process started, two `POST /api/messages` returned 202, `SharePointAnswerAgent` was invoked twice, and there were no exceptions. The "Writing the
+answer" progress step is unit-tested; whether Teams shows it as intended was not looked at separately.
+
 **What we built.**
 1. **A relevance gate, off by default. [decision]** `RetrievalRelevanceGate` (bot application layer; one pure, unit-tested function)
    drops hits whose score is below `Bot:SharePoint:Retrieval:MinRelevance` (0 to 1, default **0**, which cuts nothing). Hits with no score

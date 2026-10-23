@@ -19,6 +19,7 @@ Browser ─► POST /api/briefing (same host, same pipeline, SSE progress)  ┘
                               ▼  x-ms-user-identity + x-client-* headers
                          Foundry agents
    SharePointRetrievalAgent  ──(person's Graph token)──►  Microsoft 365 Copilot Retrieval API
+   SharePointAnswerAgent     ──(extracts only, no token)► writes the short cited answer for route A
    SharePointKnowledgeAgent  ──(person's Search token)──► Foundry IQ knowledge base ──► SharePoint (live)
    ZavaApiAgent              ──(x-client-zava-api-token)► Compass.Mcp.ZavaApi.Host (Azure Functions, MCP)
                                                               └─ validates audience and issuer ─► SQLite "core banking"
@@ -31,6 +32,31 @@ Browser ─► POST /api/briefing (same host, same pipeline, SSE progress)  ┘
 
 The full reasoning, hop by hop, is in [`docs/DEMO-SCRIPT.md`](docs/DEMO-SCRIPT.md). Who is who and what each identity may do is in [`docs/IDENTITY-AND-ACCESS.md`](docs/IDENTITY-AND-ACCESS.md).
 
+## Choosing the SharePoint route (and switching it)
+
+The bot can answer SharePoint questions two ways. This is one setting, **`SHAREPOINT_ROUTE`** (app setting `Bot__SharePoint__Route`), and you can change it without redeploying code. The template default is `KnowledgeBase`.
+
+| Value | What runs | Observed speed | Needs |
+| --- | --- | --- | --- |
+| `KnowledgeBase` | `SharePointKnowledgeAgent` reads SharePoint live through the Foundry IQ knowledge base and writes the answer | about 10 s median (18 Oct, small sample) | Azure AI Search, `infra/scripts/Setup-KnowledgeBase.ps1`, then `--publish-knowledge-agent` |
+| `Retrieval` | The hosted `SharePointRetrievalAgent` calls the Copilot Retrieval API with the person's Graph token, then `SharePointAnswerAgent` writes a short cited answer from those extracts | about 5 s median (22 Oct, 12 questions) | The hosted agent published, then `--publish-answer-agent` |
+| `Both` | Both branches, shown under separate headings (answers can repeat). For comparing the two | not measured | Everything above |
+
+Both routes read SharePoint through the Copilot Retrieval API, so each person needs a Microsoft 365 Copilot licence either way. The route is a **ceiling**: a question about accounts never starts a SharePoint branch, whatever the route says.
+
+**Switch it now** (no provisioning; the app restarts, which takes about a minute):
+
+```powershell
+az webapp config appsettings set -g <resource-group> -n <bot-app> --settings Bot__SharePoint__Route=Retrieval
+```
+
+Use exactly `KnowledgeBase`, `Retrieval` or `Both`. A typo makes `GET /health/ready` return 503 and name the setting.
+
+**Switch it for good:** `azd env set SHAREPOINT_ROUTE Retrieval`, then `azd provision`. If you only change the app setting, the next `azd provision` sets it back to whatever the azd environment holds (the default is `KnowledgeBase`).
+
+**Check which route is live:** every briefing ends with a line such as `SharePoint route: Graph retrieval` (or `knowledge base`).
+
+Two more switches apply to `Retrieval`: `Bot__SharePoint__Retrieval__Summarise` (`RETRIEVAL_SUMMARISE`, default `true`; `false` lists the extracts instead of summarising them) and `Bot__SharePoint__Retrieval__MinRelevance` (`RETRIEVAL_MIN_RELEVANCE`, default `0`, which cuts nothing). Details, the privacy note about Application Insights, and the evidence are in [`docs/DEPLOY.md`](docs/DEPLOY.md) and [`docs/SHAREPOINT-ROUTES.md`](docs/SHAREPOINT-ROUTES.md).
 ## Quick start
 
 ### A. Offline: build and test (about 5 minutes, no Azure account)
