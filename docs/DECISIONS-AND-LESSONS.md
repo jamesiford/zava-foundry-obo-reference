@@ -139,7 +139,7 @@ and Learn advises against limiting it. `filterExpression` scopes the query (site
 **0.671 to 0.812**. For not-relevant questions (the other person's policy question, "What is the capital of France?"): **0.582 to
 0.703**. The ranges overlap. A 0.70 cut-off would drop the relevant shared wire-cutoff question (0.671) and still keep a not-relevant
 one (0.703). **The scores do not separate the two groups, so we did not pick a threshold.** (One question was asked twice; a sample this
-small is a spike, not a calibration.)
+small is a spike, not a calibration. Log lines were matched to questions by order; the repeated identical scores for the shared wire question and for the off-topic question agree. The tester read each answer on screen and confirmed it.)
 
 **What we built.**
 1. **A relevance gate, off by default. [decision]** `RetrievalRelevanceGate` (bot application layer; one pure, unit-tested function)

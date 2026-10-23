@@ -73,7 +73,7 @@ isolation. Run it first.
 **[observed]** The Retrieval API returns its best matches even for a question the person's documents do not answer. Before the summary
 step, Daniel asking question 6 got extracts from two documents he can read and neither was relevant (nothing from Maya's library appeared).
 With the summary on, each of the 12 questions below was handled correctly: the "Must not" and off-topic cases read "No document you have
-access to answers this question.", and the "Gets it" cases got a short cited answer. No text crossed between Daniel and Maya.
+access to answers this question.", and the "Gets it" cases got a short cited answer. The tester read each answer on screen and saw no text from the other person's documents (one run, one tester; the shared wire question was asked twice).
 
 | Ask as | Question (number above) | Expected | Top score **[observed]** |
 |---|---|---|---|
